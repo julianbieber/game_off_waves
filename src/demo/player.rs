@@ -1,5 +1,6 @@
 //! Player-specific behavior.
 
+use avian2d::prelude::{Collider, RigidBody};
 use bevy::{
     image::{ImageLoaderSettings, ImageSampler},
     prelude::*,
@@ -8,10 +9,7 @@ use bevy::{
 use crate::{
     AppSystems, PausableSystems,
     asset_tracking::LoadResource,
-    demo::{
-        animation::PlayerAnimation,
-        movement::{MovementController, ScreenWrap},
-    },
+    demo::{animation::PlayerAnimation, movement::MovementController},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -20,9 +18,14 @@ pub(super) fn plugin(app: &mut App) {
     // Record directional input as movement controls.
     app.add_systems(
         Update,
-        record_player_directional_input
-            .in_set(AppSystems::RecordInput)
-            .in_set(PausableSystems),
+        (
+            record_player_directional_input
+                .in_set(AppSystems::RecordInput)
+                .in_set(PausableSystems),
+            follow_cam
+                .in_set(AppSystems::Update)
+                .in_set(PausableSystems),
+        ),
     );
 }
 
@@ -53,9 +56,22 @@ pub fn player(
             max_speed,
             ..default()
         },
-        ScreenWrap,
         player_animation,
+        RigidBody::Kinematic,
+        Collider::circle(32.0),
     )
+}
+
+fn follow_cam(
+    camera: Single<&mut Transform, (With<Camera>, Without<Player>)>,
+    player: Single<&Transform, (With<Player>, Without<Camera>)>,
+) {
+    let mut camera = camera.into_inner();
+
+    let player = player.into_inner();
+
+    camera.translation.x = player.translation.x;
+    camera.translation.y = player.translation.y;
 }
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Default, Reflect)]

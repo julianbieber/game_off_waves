@@ -5,6 +5,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+avian2d = "0.4.1"
 bevy = { version = "0.17" , features = ["shader_format_wesl"]}
 noiz = "0.3.0"
 rand = "0.9"

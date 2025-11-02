@@ -1,0 +1,11 @@
+[toolchain]
+channel = "nightly-2025-06-26"
+components = [
+  "rust-analyzer",
+  "clippy",
+  "rustfmt",
+  "rust-src",
+  "rust-docs"
+]
+# Optional: keep default profile so optional components can be added automatically
+# profile = "default"
