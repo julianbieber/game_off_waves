@@ -4,7 +4,8 @@ pub(super) fn plugin(app: &mut App) {
     app.add_systems(
         Update,
         apply_global_volume.run_if(resource_changed::<GlobalVolume>),
-    );
+    )
+    .add_systems(Startup, mute_on_start);
 }
 
 /// An organizational marker component that should be added to a spawned [`AudioPlayer`] if it's in the
@@ -40,5 +41,12 @@ fn apply_global_volume(
 ) {
     for (playback, mut sink) in &mut audio_query {
         sink.set_volume(global_volume.volume * playback.volume);
+        sink.mute();
+    }
+}
+
+fn mute_on_start(mut audio_query: Query<&mut AudioSink>) {
+    for mut sink in audio_query.iter_mut() {
+        sink.mute();
     }
 }

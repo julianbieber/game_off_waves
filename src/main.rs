@@ -12,6 +12,7 @@ mod menus;
 mod screens;
 mod theme;
 
+use avian2d::{PhysicsPlugins, prelude::PhysicsDebugPlugin};
 use bevy::{asset::AssetMetaCheck, prelude::*};
 
 fn main() -> AppExit {
@@ -53,6 +54,8 @@ impl Plugin for AppPlugin {
             menus::plugin,
             screens::plugin,
             theme::plugin,
+            PhysicsPlugins::default(),
+            PhysicsDebugPlugin,
         ));
 
         // Order new `AppSystems` variants by adding them here:

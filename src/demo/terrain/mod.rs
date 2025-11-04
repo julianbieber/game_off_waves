@@ -53,7 +53,7 @@ fn generate_chunk() -> TerrainChunk {
     let mut t = TerrainChunk::zero();
     let mut noise = Noise::<PerCell<OrthoGrid, Random<SNorm, f32>>>::default();
     noise.set_seed(123);
-    noise.set_frequency(0.1);
+    noise.set_frequency(1.1);
 
     for y in 0..TerrainChunk::SQUARE {
         for x in 0..TerrainChunk::SQUARE {
@@ -119,11 +119,11 @@ impl TerrainChunk {
         for y in 0..TerrainChunk::SQUARE {
             for x in 0..TerrainChunk::SQUARE {
                 let height = self.get(x, y);
-                if height < 0.0 {
-                    let x = x as f32 * 32.0 + offset.x;
-                    let y = y as f32 * 32.0 + offset.y;
+                if height > 0.0 {
+                    let x = x as f32 * 64.0 + offset.x;
+                    let y = y as f32 * 64.0 + offset.y;
                     colliders.push((
-                        Collider::rectangle(32.0, 32.0),
+                        Collider::rectangle(64.0, 64.0),
                         Transform::from_xyz(x, y, 0.0),
                     ));
                 }
