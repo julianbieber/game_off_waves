@@ -21,13 +21,18 @@ impl Plugin for TerrainPlugin {
     }
 }
 
+const CHUNK_SIZE_PIXELS: usize = 4069 / 4;
+
 fn spawn_terrain(
     mut commands: Commands,
     mut materials: ResMut<Assets<TerrainMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    let mesh = meshes.add(Rectangle::new(4096.0, 4096.0));
+    let mesh = meshes.add(Rectangle::new(
+        CHUNK_SIZE_PIXELS as f32,
+        CHUNK_SIZE_PIXELS as f32,
+    ));
     let terrain = generate_chunk();
 
     let height_tex = images.add(terrain.as_tex());
@@ -57,9 +62,13 @@ fn generate_chunk() -> TerrainChunk {
 
     for y in 0..TerrainChunk::SQUARE {
         for x in 0..TerrainChunk::SQUARE {
-            // let world_pos = Vec2::new(x as f32, y as f32) * 0.12;
-            // let height = noise.sample(world_pos);
-            let height = if (x) % 2 == 0 { 1.0 } else { -1.0 };
+            let world_pos = Vec2::new(x as f32, y as f32);
+            let height = noise.sample(world_pos);
+            // let height = if (y + x * TerrainChunk::SQUARE + 1) % 2 == 0 {
+            //     1.0
+            // } else {
+            //     0.0
+            // };
 
             t.set(x, y, height);
         }
@@ -73,7 +82,7 @@ pub struct TerrainChunk {
 }
 
 impl TerrainChunk {
-    const SQUARE: usize = 128; // each block is 32x32 pixels
+    const SQUARE: usize = 4; // each block is 32x32 pixels
 
     pub fn zero() -> TerrainChunk {
         let heights = vec![0.0; TerrainChunk::SQUARE * TerrainChunk::SQUARE];
@@ -118,7 +127,7 @@ impl TerrainChunk {
 
     fn land_colliders(&self, offset: Vec2) -> Vec<(Collider, Transform)> {
         let mut colliders = Vec::with_capacity(TerrainChunk::SQUARE * TerrainChunk::SQUARE);
-        let collider_size = 32.0;
+        let collider_size = (CHUNK_SIZE_PIXELS / TerrainChunk::SQUARE) as f32;
         for y in 0..TerrainChunk::SQUARE {
             for x in 0..TerrainChunk::SQUARE {
                 let height = self.get(x, y);

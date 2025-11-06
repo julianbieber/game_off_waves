@@ -41,7 +41,6 @@ fn apply_global_volume(
 ) {
     for (playback, mut sink) in &mut audio_query {
         sink.set_volume(global_volume.volume * playback.volume);
-        sink.mute();
     }
 }
 

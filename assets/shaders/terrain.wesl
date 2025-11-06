@@ -12,7 +12,7 @@ struct CustomMaterial {
 @group(2) @binding(1) var height_texture: texture_2d<f32>;
 @group(2) @binding(2) var height_texture_sampler: sampler;
 
-const UV_STEPS = 128.0;
+const UV_STEPS = 4.0;
 
 fn rgb(r: i32, g: i32, b: i32) -> vec3<f32> {
     return vec3<f32>(f32(r) / 255.0, f32(g) / 255.0, f32(b) / 255.0);
@@ -34,7 +34,7 @@ fn v2(x: f32, y: f32) -> vec2<f32> {
 }
 
 fn h(p: vec2<f32>) -> f32 {
-    return textureSample(height_texture, height_texture_sampler, p).x;
+    return textureSample(height_texture, height_texture_sampler, v2(p.x, 1.0 - p.y)).r;
 }
 
 // top, left, right, bottom
@@ -82,7 +82,9 @@ fn bilinear_height(uv: vec2<f32>) -> f32 {
     let hx1 = mix(h01, h11, tx);
     let hxy = mix(hx0, hx1, ty);
 
-    return hxy;
+    return h(uv);
+
+    // return hxy;
 }
 
 // returning (distance, height)
@@ -142,16 +144,24 @@ fn fragment(
     // So I need a function similar to the bilinear_height, returning height and distance.
     // I can use the bilinear height to guide the transition
     let block_height = h(mesh.uv);
-    // let local_height = bilinear_height(mesh.uv);
+    let local_height = bilinear_height(mesh.uv);
     // let border_dist = distance_to_closest_neighbor(mesh.uv);
 
-    // let water = water_color(block_height, local_height, mesh.uv);
+    let water = water_color(block_height, local_height, mesh.uv);
 
-    // let ground = ground_color(block_height, local_height, mesh.uv);
+    let ground = ground_color(block_height, local_height, mesh.uv);
 
     // let c = merge_colors(water, ground);
     // let c: vec3<f32> = vec3<f32>(0.2, .05, 0.1) * block_height;
-    let c = vec3<f32>(mesh.uv, block_height);
+    // let c = vec3<f32>(mesh.uv, block_height);
+    var c: vec3<f32>;
+    if block_height < 0.0 {
+        c = vec3<f32>(0.0, 0.0, 1.0);
+    } else if block_height == 0.0 {
+        c = vec3<f32>(0.5);
+    } else {
+        c = vec3<f32>(0.0, 1.0, 0.0);
+    }
 
-    return vec4<f32>(c, 1.0);
+    return vec4<f32>(c * abs(block_height), 1.0);
 }
