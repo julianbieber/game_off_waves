@@ -57,8 +57,10 @@ fn generate_chunk() -> TerrainChunk {
 
     for y in 0..TerrainChunk::SQUARE {
         for x in 0..TerrainChunk::SQUARE {
-            let world_pos = Vec2::new(x as f32, y as f32) * 0.12;
-            let height = noise.sample(world_pos);
+            // let world_pos = Vec2::new(x as f32, y as f32) * 0.12;
+            // let height = noise.sample(world_pos);
+            let height = if (x) % 2 == 0 { 1.0 } else { -1.0 };
+
             t.set(x, y, height);
         }
     }
@@ -116,14 +118,19 @@ impl TerrainChunk {
 
     fn land_colliders(&self, offset: Vec2) -> Vec<(Collider, Transform)> {
         let mut colliders = Vec::with_capacity(TerrainChunk::SQUARE * TerrainChunk::SQUARE);
+        let collider_size = 32.0;
         for y in 0..TerrainChunk::SQUARE {
             for x in 0..TerrainChunk::SQUARE {
                 let height = self.get(x, y);
                 if height > 0.0 {
-                    let x = x as f32 * 64.0 + offset.x;
-                    let y = y as f32 * 64.0 + offset.y;
+                    let x = x as f32 * collider_size + offset.x
+                        - collider_size * (TerrainChunk::SQUARE / 2) as f32
+                        + collider_size * 0.5;
+                    let y = y as f32 * collider_size + offset.y
+                        - collider_size * (TerrainChunk::SQUARE / 2) as f32
+                        + collider_size * 0.5;
                     colliders.push((
-                        Collider::rectangle(64.0, 64.0),
+                        Collider::rectangle(collider_size, collider_size),
                         Transform::from_xyz(x, y, 0.0),
                     ));
                 }

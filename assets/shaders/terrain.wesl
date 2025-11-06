@@ -142,15 +142,16 @@ fn fragment(
     // So I need a function similar to the bilinear_height, returning height and distance.
     // I can use the bilinear height to guide the transition
     let block_height = h(mesh.uv);
-    let local_height = bilinear_height(mesh.uv);
+    // let local_height = bilinear_height(mesh.uv);
     // let border_dist = distance_to_closest_neighbor(mesh.uv);
 
-    let water = water_color(block_height, local_height, mesh.uv);
+    // let water = water_color(block_height, local_height, mesh.uv);
 
-    let ground = ground_color(block_height, local_height, mesh.uv);
+    // let ground = ground_color(block_height, local_height, mesh.uv);
 
-    let c = merge_colors(water, ground);
+    // let c = merge_colors(water, ground);
     // let c: vec3<f32> = vec3<f32>(0.2, .05, 0.1) * block_height;
+    let c = vec3<f32>(mesh.uv, block_height);
 
     return vec4<f32>(c, 1.0);
 }
