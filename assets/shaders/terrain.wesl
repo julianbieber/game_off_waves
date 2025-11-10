@@ -12,7 +12,7 @@ struct CustomMaterial {
 @group(2) @binding(1) var height_texture: texture_2d<f32>;
 @group(2) @binding(2) var height_texture_sampler: sampler;
 
-const UV_STEPS = 4.0;
+const UV_STEPS = 64.0;
 
 fn rgb(r: i32, g: i32, b: i32) -> vec3<f32> {
     return vec3<f32>(f32(r) / 255.0, f32(g) / 255.0, f32(b) / 255.0);
@@ -155,9 +155,9 @@ fn fragment(
     // let c: vec3<f32> = vec3<f32>(0.2, .05, 0.1) * block_height;
     // let c = vec3<f32>(mesh.uv, block_height);
     var c: vec3<f32>;
-    if block_height < 0.0 {
+    if block_height < 0.5 {
         c = vec3<f32>(0.0, 0.0, 1.0);
-    } else if block_height == 0.0 {
+    } else if block_height == 0.5 {
         c = vec3<f32>(0.5);
     } else {
         c = vec3<f32>(0.0, 1.0, 0.0);

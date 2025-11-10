@@ -1,15 +1,13 @@
 //! Player-specific behavior.
 
-use avian2d::prelude::{Collider, RigidBody};
+use avian2d::prelude::{AngularDamping, Collider, Mass, RigidBody};
 use bevy::{
     image::{ImageLoaderSettings, ImageSampler},
     prelude::*,
 };
 
 use crate::{
-    AppSystems, PausableSystems,
-    asset_tracking::LoadResource,
-    demo::{animation::PlayerAnimation, movement::MovementController},
+    AppSystems, PausableSystems, asset_tracking::LoadResource, demo::movement::MovementController,
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -39,7 +37,6 @@ pub fn player(
     // You can learn more in this example: https://github.com/bevyengine/bevy/blob/latest/examples/2d/texture_atlas.rs
     let layout = TextureAtlasLayout::from_grid(UVec2::splat(32), 6, 2, Some(UVec2::splat(1)), None);
     let texture_atlas_layout = texture_atlas_layouts.add(layout);
-    let player_animation = PlayerAnimation::new();
 
     (
         Name::new("Player"),
@@ -48,7 +45,7 @@ pub fn player(
             player_assets.ducky.clone(),
             TextureAtlas {
                 layout: texture_atlas_layout,
-                index: player_animation.get_atlas_index(),
+                index: 0,
             },
         ),
         Transform::from_scale(Vec2::splat(8.0).extend(1.0)),
@@ -56,9 +53,10 @@ pub fn player(
             max_speed,
             ..default()
         },
-        player_animation,
-        RigidBody::Kinematic,
-        Collider::circle(32.0),
+        RigidBody::Dynamic,
+        Mass(10.0),
+        AngularDamping(2.0),
+        Collider::rectangle(16.0, 16.0),
     )
 }
 
@@ -72,6 +70,7 @@ fn follow_cam(
 
     camera.translation.x = player.translation.x;
     camera.translation.y = player.translation.y;
+    camera.rotation = player.rotation;
 }
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Default, Reflect)]
@@ -83,27 +82,25 @@ fn record_player_directional_input(
     mut controller_query: Query<&mut MovementController, With<Player>>,
 ) {
     // Collect directional input.
-    let mut intent = Vec2::ZERO;
+    let mut intent = 0.0;
     if input.pressed(KeyCode::KeyW) || input.pressed(KeyCode::ArrowUp) {
-        intent.y += 1.0;
+        intent += 1.0;
     }
     if input.pressed(KeyCode::KeyS) || input.pressed(KeyCode::ArrowDown) {
-        intent.y -= 1.0;
+        intent -= 1.0;
     }
+
+    let mut rotation_intent = 0.0;
     if input.pressed(KeyCode::KeyA) || input.pressed(KeyCode::ArrowLeft) {
-        intent.x -= 1.0;
+        rotation_intent += 1.0;
     }
     if input.pressed(KeyCode::KeyD) || input.pressed(KeyCode::ArrowRight) {
-        intent.x += 1.0;
+        rotation_intent -= 1.0;
     }
-
-    // Normalize intent so that diagonal movement is the same speed as horizontal / vertical.
-    // This should be omitted if the input comes from an analog stick instead.
-    let intent = intent.normalize_or_zero();
-
     // Apply movement intent to controllers.
     for mut controller in &mut controller_query {
         controller.intent = intent;
+        controller.rotation_intent = rotation_intent;
     }
 }
 

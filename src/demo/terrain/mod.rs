@@ -21,7 +21,7 @@ impl Plugin for TerrainPlugin {
     }
 }
 
-const CHUNK_SIZE_PIXELS: usize = 4069 / 4;
+const CHUNK_SIZE_PIXELS: usize = 4096;
 
 fn spawn_terrain(
     mut commands: Commands,
@@ -82,7 +82,7 @@ pub struct TerrainChunk {
 }
 
 impl TerrainChunk {
-    const SQUARE: usize = 4; // each block is 32x32 pixels
+    const SQUARE: usize = 16;
 
     pub fn zero() -> TerrainChunk {
         let heights = vec![0.0; TerrainChunk::SQUARE * TerrainChunk::SQUARE];
@@ -131,7 +131,7 @@ impl TerrainChunk {
         for y in 0..TerrainChunk::SQUARE {
             for x in 0..TerrainChunk::SQUARE {
                 let height = self.get(x, y);
-                if height > 0.0 {
+                if height > 0.5 {
                     let x = x as f32 * collider_size + offset.x
                         - collider_size * (TerrainChunk::SQUARE / 2) as f32
                         + collider_size * 0.5;
