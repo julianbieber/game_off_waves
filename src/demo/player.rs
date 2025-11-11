@@ -70,7 +70,16 @@ fn follow_cam(
 
     camera.translation.x = player.translation.x;
     camera.translation.y = player.translation.y;
-    camera.rotation = player.rotation;
+
+    let cam_angle = camera.rotation.to_euler(EulerRot::XYZ).2;
+    let player_angle = player.rotation.to_euler(EulerRot::XYZ).2;
+    let diff = (cam_angle - player_angle).abs();
+
+    if diff < 0.01 {
+        camera.rotation = player.rotation;
+    } else {
+        camera.rotation = Quat::from_rotation_z(cam_angle - (cam_angle - player_angle) * 0.2);
+    }
 }
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Default, Reflect)]

@@ -64,6 +64,7 @@ fn apply_movement(
         let forward = Vec2::new(angle.cos(), angle.sin());
 
         let new_force = forward * controller.intent * 100.0; //* time.delta_secs();
+
         forces.apply_force(new_force);
     }
 }
@@ -75,7 +76,7 @@ fn rotate_forward(
         let angle = transform.rotation.to_euler(EulerRot::XYZ).2 + f32::consts::FRAC_PI_2;
         let forward = Vec2::new(angle.cos(), angle.sin());
         if velocity.0 != Vec2::ZERO {
-            velocity.0 = forward * velocity.length();
+            velocity.0 = forward * velocity.0.length() * velocity.0.signum();
         }
     }
 }
