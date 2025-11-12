@@ -1,18 +1,15 @@
 //! Player-specific behavior.
 
-use avian2d::prelude::{AngularDamping, Collider, Mass, RigidBody};
+use avian2d::prelude::{AngularDamping, Collider, LinearDamping, Mass, RigidBody};
 use bevy::{
-    image::{ImageLoaderSettings, ImageSampler},
     prelude::*,
+    render::render_resource::AsBindGroup,
+    sprite_render::{Material2d, Material2dPlugin},
 };
 
-use crate::{
-    AppSystems, PausableSystems, asset_tracking::LoadResource, demo::movement::MovementController,
-};
+use crate::{AppSystems, PausableSystems, demo::movement::MovementController, screens::Screen};
 
 pub(super) fn plugin(app: &mut App) {
-    app.load_resource::<PlayerAssets>();
-
     // Record directional input as movement controls.
     app.add_systems(
         Update,
@@ -24,31 +21,25 @@ pub(super) fn plugin(app: &mut App) {
                 .in_set(AppSystems::Update)
                 .in_set(PausableSystems),
         ),
-    );
+    )
+    .add_systems(Update, update_time.run_if(in_state(Screen::Gameplay)))
+    .add_plugins(Material2dPlugin::<BoatMaterial>::default());
 }
 
 /// The player character.
 pub fn player(
     max_speed: f32,
-    player_assets: &PlayerAssets,
-    texture_atlas_layouts: &mut Assets<TextureAtlasLayout>,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<BoatMaterial>,
 ) -> impl Bundle {
-    // A texture atlas is a way to split a single image into a grid of related images.
-    // You can learn more in this example: https://github.com/bevyengine/bevy/blob/latest/examples/2d/texture_atlas.rs
-    let layout = TextureAtlasLayout::from_grid(UVec2::splat(32), 6, 2, Some(UVec2::splat(1)), None);
-    let texture_atlas_layout = texture_atlas_layouts.add(layout);
-
+    let mesh = meshes.add(Rectangle::new(300.0, 500.0));
+    let material = materials.add(BoatMaterial { time: Vec4::ZERO });
     (
         Name::new("Player"),
         Player,
-        Sprite::from_atlas_image(
-            player_assets.ducky.clone(),
-            TextureAtlas {
-                layout: texture_atlas_layout,
-                index: 0,
-            },
-        ),
-        Transform::from_scale(Vec2::splat(8.0).extend(1.0)),
+        Mesh2d(mesh),
+        MeshMaterial2d(material),
+        Transform::from_translation(Vec3::ZERO),
         MovementController {
             max_speed,
             ..default()
@@ -56,7 +47,8 @@ pub fn player(
         RigidBody::Dynamic,
         Mass(10.0),
         AngularDamping(2.0),
-        Collider::rectangle(16.0, 16.0),
+        LinearDamping(0.2),
+        Collider::rectangle(100.0, 200.0),
     )
 }
 
@@ -71,15 +63,15 @@ fn follow_cam(
     camera.translation.x = player.translation.x;
     camera.translation.y = player.translation.y;
 
-    let cam_angle = camera.rotation.to_euler(EulerRot::XYZ).2;
-    let player_angle = player.rotation.to_euler(EulerRot::XYZ).2;
-    let diff = (cam_angle - player_angle).abs();
+    // let cam_angle = camera.rotation.to_euler(EulerRot::XYZ).2;
+    // let player_angle = player.rotation.to_euler(EulerRot::XYZ).2;
+    // let diff = (cam_angle - player_angle).abs();
 
-    if diff < 0.01 {
-        camera.rotation = player.rotation;
-    } else {
-        camera.rotation = Quat::from_rotation_z(cam_angle - (cam_angle - player_angle) * 0.2);
-    }
+    // if diff < 0.01 {
+    // camera.rotation = player.rotation;
+    // } else {
+    // camera.rotation = Quat::from_rotation_z(cam_angle - (cam_angle - player_angle) * 0.2);
+    // }
 }
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Default, Reflect)]
@@ -113,32 +105,39 @@ fn record_player_directional_input(
     }
 }
 
-#[derive(Resource, Asset, Clone, Reflect)]
-#[reflect(Resource)]
-pub struct PlayerAssets {
-    #[dependency]
-    ducky: Handle<Image>,
-    #[dependency]
-    pub steps: Vec<Handle<AudioSource>>,
+fn update_time(
+    time: Res<Time>,
+    mut materials: ResMut<Assets<BoatMaterial>>,
+    boats: Query<&MeshMaterial2d<BoatMaterial>>,
+) {
+    for c in boats.iter() {
+        if let Some(m) = materials.get_mut(c.0.id()) {
+            m.time = Vec4::new(time.elapsed_secs(), 0.0, 0.0, 0.0);
+        }
+    }
+}
+#[derive(Asset, TypePath, AsBindGroup, Clone)]
+pub struct BoatMaterial {
+    #[uniform(0)]
+    time: Vec4,
 }
 
-impl FromWorld for PlayerAssets {
-    fn from_world(world: &mut World) -> Self {
-        let assets = world.resource::<AssetServer>();
-        Self {
-            ducky: assets.load_with_settings(
-                "images/ducky.png",
-                |settings: &mut ImageLoaderSettings| {
-                    // Use `nearest` image sampling to preserve pixel art style.
-                    settings.sampler = ImageSampler::nearest();
-                },
-            ),
-            steps: vec![
-                assets.load("audio/sound_effects/step1.ogg"),
-                assets.load("audio/sound_effects/step2.ogg"),
-                assets.load("audio/sound_effects/step3.ogg"),
-                assets.load("audio/sound_effects/step4.ogg"),
-            ],
-        }
+const BOAT_SHADER_PATH: &str = "shaders/boat.wesl";
+
+impl Material2d for BoatMaterial {
+    fn vertex_shader() -> bevy::shader::ShaderRef {
+        bevy::shader::ShaderRef::Default
+    }
+
+    fn fragment_shader() -> bevy::shader::ShaderRef {
+        BOAT_SHADER_PATH.into()
+    }
+
+    fn depth_bias(&self) -> f32 {
+        0.0
+    }
+
+    fn alpha_mode(&self) -> bevy::sprite_render::AlphaMode2d {
+        bevy::sprite_render::AlphaMode2d::Blend
     }
 }

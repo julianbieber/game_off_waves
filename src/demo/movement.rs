@@ -59,24 +59,28 @@ fn apply_movement(
     mut movement_query: Query<(&MovementController, &Transform, Forces)>,
 ) {
     for (controller, transform, mut forces) in &mut movement_query {
-        forces.apply_angular_impulse(controller.rotation_intent * 100.0);
+        forces.apply_angular_impulse(controller.rotation_intent * 300.0);
         let angle = transform.rotation.to_euler(EulerRot::XYZ).2 + f32::consts::FRAC_PI_2;
         let forward = Vec2::new(angle.cos(), angle.sin());
 
-        let new_force = forward * controller.intent * 100.0; //* time.delta_secs();
+        let new_force = forward * controller.intent * 300.0; //* time.delta_secs();
 
         forces.apply_force(new_force);
     }
 }
 
-fn rotate_forward(
-    mut velocities: Query<(&mut LinearVelocity, &Transform), With<MovementController>>,
-) {
-    for (mut velocity, transform) in &mut velocities {
+fn rotate_forward(mut velocities: Query<(&Transform, Forces), With<MovementController>>) {
+    for (transform, mut forces) in &mut velocities {
         let angle = transform.rotation.to_euler(EulerRot::XYZ).2 + f32::consts::FRAC_PI_2;
         let forward = Vec2::new(angle.cos(), angle.sin());
-        if velocity.0 != Vec2::ZERO {
-            velocity.0 = forward * velocity.0.length() * velocity.0.signum();
+        let backward = -forward;
+        let velo_to_forward = forces.linear_velocity().normalize().dot(forward);
+        let velo_to_backward = forces.linear_velocity().normalize().dot(backward);
+
+        if velo_to_backward < velo_to_forward {
+            *forces.linear_velocity_mut() = forward * forces.linear_velocity().length();
+        } else {
+            *forces.linear_velocity_mut() = backward * forces.linear_velocity().length();
         }
     }
 }
