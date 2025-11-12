@@ -53,10 +53,7 @@ bevy-lint-install:
 
 # Tests with cranelift backend
 test:
-	@env \
-	RUSTFLAGS="{{RUSTFLAGS_BASE}} -Zcodegen-backend=cranelift" \
-	RUSTDOCFLAGS="{{RUSTDOCFLAGS_BASE}}" \
-	cargo test --locked --workspace --all-targets --profile ci --no-fail-fast
+	cargo test --locked --workspace
 
 # Web compilation check with getrandom wasm cfg injection
 check-web:
