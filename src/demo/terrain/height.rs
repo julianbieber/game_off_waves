@@ -131,6 +131,9 @@ pub struct TerrainMaterial {
     #[texture(1)]
     #[sampler(2)]
     pub height_texture: Handle<Image>,
+    #[texture(3)]
+    #[sampler(4)]
+    pub wave_texture: Handle<Image>,
 }
 
 const FRAGMENT_SHADER_ASSET_PATH: &str = "shaders/terrain.wesl";

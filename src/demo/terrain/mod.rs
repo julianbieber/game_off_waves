@@ -6,8 +6,9 @@ use bevy::{prelude::*, sprite_render::Material2dPlugin};
 use noiz::prelude::*;
 
 use crate::{
-    demo::terrain::height::{
-        CHUNK_SIZE_PIXELS, SQUARE, TerrainChunk, TerrainMaterial, update_time,
+    demo::terrain::{
+        height::{CHUNK_SIZE_PIXELS, SQUARE, TerrainChunk, TerrainMaterial, update_time},
+        waves::Waves,
     },
     screens::Screen,
 };
@@ -35,10 +36,14 @@ fn spawn_terrain(
     ));
     let terrain = generate_chunk();
 
-    let height_tex = images.add(terrain.as_tex());
+    let waves = Waves::init(&terrain);
+    let wave_texture = images.add(waves.as_tex());
+
+    let height_texture = images.add(terrain.as_tex());
     let material = materials.add(TerrainMaterial {
         time: Vec4::ZERO,
-        height_texture: height_tex,
+        height_texture,
+        wave_texture,
     });
 
     commands.spawn((
@@ -51,7 +56,6 @@ fn spawn_terrain(
     for c in land_collider {
         commands.spawn((c.0, c.1, RigidBody::Static));
     }
-    warn!("spawn terrain");
 }
 
 fn generate_chunk() -> TerrainChunk {

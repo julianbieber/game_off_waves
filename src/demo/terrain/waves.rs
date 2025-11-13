@@ -1,4 +1,6 @@
-use bevy::prelude::*;
+use bevy::{
+    asset::RenderAssetUsages, image::ImageSampler, prelude::*, render::render_resource::Extent3d,
+};
 
 use crate::demo::terrain::height::{SQUARE, TerrainChunk, WATER_LEVEL};
 
@@ -50,10 +52,40 @@ impl Waves {
         w
     }
 
+    pub fn as_tex(&self) -> Image {
+        let bytes = self
+            .directions
+            .iter()
+            .flat_map(|d| {
+                let x = d.x.to_le_bytes();
+                let y = d.y.to_le_bytes();
+                let mut r = Vec::with_capacity(x.len() + y.len());
+                r.extend_from_slice(&x);
+                r.extend_from_slice(&y);
+                r
+            })
+            .collect();
+
+        let mut i = Image::new(
+            Extent3d {
+                width: SQUARE as u32,
+                height: SQUARE as u32,
+                depth_or_array_layers: 1,
+            },
+            bevy::render::render_resource::TextureDimension::D2,
+            bytes,
+            bevy::render::render_resource::TextureFormat::Rg32Float,
+            RenderAssetUsages::all(),
+        );
+        i.sampler = ImageSampler::nearest();
+
+        i
+    }
+
     /// returning height, and rising(true) or lowering(false)
     /// x, y in world space
     #[allow(dead_code)]
-    fn wave_height(&self, _x: f32, _y: f32, _t: f32) -> (f32, bool) {
+    pub fn wave_height(&self, _x: f32, _y: f32, _t: f32) -> (f32, bool) {
         (0.0, false)
     }
 

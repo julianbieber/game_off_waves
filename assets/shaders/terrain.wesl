@@ -11,6 +11,8 @@ struct CustomMaterial {
 @group(2) @binding(0) var<uniform> material: CustomMaterial;
 @group(2) @binding(1) var height_texture: texture_2d<f32>;
 @group(2) @binding(2) var height_texture_sampler: sampler;
+@group(2) @binding(3) var waves_texture: texture_2d<f32>;
+@group(2) @binding(4) var waves_texture_sampler: sampler;
 
 const UV_STEPS = 64.0;
 
