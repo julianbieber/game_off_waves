@@ -5,50 +5,40 @@ use bevy::{
 use crate::demo::terrain::height::{SQUARE, TerrainChunk, WATER_LEVEL, world_2_chunk};
 
 pub struct Waves {
-    directions: Vec<IVec2>,
+    directions: Vec<Vec2>,
 }
 
 impl Waves {
     #[allow(dead_code)]
     pub fn init(terrain: &TerrainChunk) -> Waves {
-        let directions = vec![IVec2::ZERO; SQUARE * SQUARE];
+        let directions = vec![Vec2::ZERO; SQUARE * SQUARE];
         let mut w = Waves { directions };
-        for x in 0..SQUARE as isize {
-            for y in 0..SQUARE as isize {
-                let mut min_x_d = SQUARE as isize;
-                let mut x_d = if x > SQUARE as isize / 2 {
-                    -x
-                } else {
-                    SQUARE as isize - x
-                };
-                for t_x in 0..SQUARE as isize {
-                    if terrain.get(t_x as usize, y as usize) > WATER_LEVEL {
-                        let d = (t_x - x).abs();
-                        if d < min_x_d {
-                            min_x_d = d;
-                            x_d = t_x - x;
+        // in increasing squares up to x size check the surrounding
+        for x in 0..SQUARE {
+            for y in 0..SQUARE {
+                if terrain.get(x, y) > WATER_LEVEL {
+                    continue;
+                }
+                let current_vec = Vec2::new(x as f32, y as f32);
+                for r in 1..5 {
+                    let mut found: Vec<Vec2> = Vec::with_capacity(10);
+                    for square_index in square_neighborhood(x as isize, y as isize, r) {
+                        let height = terrain.get(square_index.0, square_index.1);
+                        if height > WATER_LEVEL {
+                            found.push(
+                                current_vec
+                                    - Vec2::new(square_index.0 as f32, square_index.1 as f32),
+                            );
                         }
                     }
-                }
-                let mut min_y_d = SQUARE as isize;
-                let mut y_d = if y > SQUARE as isize / 2 {
-                    -y
-                } else {
-                    SQUARE as isize - y
-                };
-
-                for t_y in 0..SQUARE as isize {
-                    if terrain.get(x as usize, t_y as usize) > WATER_LEVEL {
-                        let d = (t_y - y).abs();
-                        if d < min_y_d {
-                            min_y_d = d;
-                            y_d = t_y - y;
-                        }
+                    if !found.is_empty() {
+                        w.set(x, y, avg(&found));
+                        break;
                     }
                 }
-                w.set(x as usize, y as usize, IVec2::new(x_d as i32, y_d as i32));
             }
         }
+
         w
     }
 
@@ -60,12 +50,11 @@ impl Waves {
                 let x = (d.x as f32).to_le_bytes();
                 let y = (d.y as f32).to_le_bytes();
                 let mut r = Vec::with_capacity(x.len() + y.len());
-                r.extend_from_slice(&y);
+                r.extend_from_slice(&x);
                 r.extend_from_slice(&y);
                 r
             })
             .collect();
-        dbg!(&bytes);
 
         let mut i = Image::new(
             Extent3d {
@@ -108,7 +97,7 @@ impl Waves {
                 let v = self.get(x, y);
                 let v_x = v.x;
                 let v_y = v.y;
-                s.push_str(format!("|{v_x:02},{v_y:02}|").as_str());
+                s.push_str(format!("|{v_x:02.2},{v_y:02.2}|").as_str());
             }
             s.push('\n');
         }
@@ -117,7 +106,7 @@ impl Waves {
 
     /// assumes x and y 0..SQUARE
     #[allow(dead_code)]
-    pub fn set(&mut self, x: usize, y: usize, dir: IVec2) {
+    pub fn set(&mut self, x: usize, y: usize, dir: Vec2) {
         assert!(x < SQUARE);
         assert!(y < SQUARE);
 
@@ -126,7 +115,7 @@ impl Waves {
     }
 
     #[allow(dead_code)]
-    pub fn get(&self, x: usize, y: usize) -> IVec2 {
+    pub fn get(&self, x: usize, y: usize) -> Vec2 {
         assert!(x < SQUARE);
         assert!(y < SQUARE);
 
@@ -135,9 +124,22 @@ impl Waves {
     }
 }
 
+pub fn square_neighborhood(cx: isize, cy: isize, r: isize) -> impl Iterator<Item = (usize, usize)> {
+    let x0 = (cx - r).max(0);
+    let y0 = (cy - r).max(0);
+    let x1 = (cx + r).min(SQUARE as isize - 1);
+    let y1 = (cy + r).min(SQUARE as isize - 1);
+
+    (y0..=y1).flat_map(move |y| (x0..=x1).map(move |x| (x as usize, y as usize)))
+}
+
+fn avg(vecs: &[Vec2]) -> Vec2 {
+    vecs.iter().sum::<Vec2>() / (vecs.len() as f32)
+}
+
 mod test {
     #[allow(unused)]
-    use bevy::math::IVec2;
+    use bevy::math::Vec2;
 
     #[allow(unused)]
     use crate::demo::terrain::height::SQUARE;
@@ -161,9 +163,9 @@ mod test {
         let waves = Waves::init(&terrain);
         println!("{}", waves.format());
 
-        assert_eq!(waves.get(0, 0), IVec2::ZERO);
-        assert_eq!(waves.get(1, 0), IVec2::ZERO);
-        assert_eq!(waves.get(0, 1), IVec2::ZERO);
-        assert_eq!(waves.get(1, 1), IVec2::new(-1, -1)); // avg of |(1,1), (0,1)|,|(1,1), (1,0)|,
+        assert_eq!(waves.get(0, 0), Vec2::ZERO);
+        assert_eq!(waves.get(1, 0), Vec2::ZERO);
+        assert_eq!(waves.get(0, 1), Vec2::ZERO);
+        assert_eq!(waves.get(1, 1), Vec2::new(-1.0, -1.0)); // avg of |(1,1), (0,1)|,|(1,1), (1,0)|,
     }
 }

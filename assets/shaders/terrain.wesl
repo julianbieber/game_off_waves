@@ -37,6 +37,10 @@ fn v2(x: f32, y: f32) -> vec2<f32> {
     return vec2<f32>(x, y);
 }
 
+fn rot(v: vec2<f32>, a: f32) -> vec2<f32> {
+    return v * mat2x2<f32>(cos(a), -sin(a), sin(a), cos(a));
+}
+
 fn h(p: vec2<f32>) -> f32 {
     return textureSample(height_texture, height_texture_sampler, v2(p.x, 1.0 - p.y)).r;
 }
@@ -49,7 +53,7 @@ fn wave_height(p: vec2<f32>, uv: vec2<f32>, t: f32) -> f32 {
     let dir_global = w(uv);
     var dir = normalize(dir_global);
 
-    let v = dot(p*0.05, dir);
+    let v = dot((p*0.05), dir);
 
     let t1 = sin(v + t*5.5);
 
@@ -173,4 +177,5 @@ fn fragment(
     }
 
     return vec4<f32>(c * abs(block_height), 1.0);
+    // return vec4<f32>((normalize(w(mesh.uv))+1.0),0.0, 1.0);
 }
