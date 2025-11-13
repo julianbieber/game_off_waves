@@ -2,7 +2,7 @@ use bevy::{
     asset::RenderAssetUsages, image::ImageSampler, prelude::*, render::render_resource::Extent3d,
 };
 
-use crate::demo::terrain::height::{SQUARE, TerrainChunk, WATER_LEVEL};
+use crate::demo::terrain::height::{SQUARE, TerrainChunk, WATER_LEVEL, world_2_chunk};
 
 pub struct Waves {
     directions: Vec<IVec2>,
@@ -57,14 +57,15 @@ impl Waves {
             .directions
             .iter()
             .flat_map(|d| {
-                let x = d.x.to_le_bytes();
-                let y = d.y.to_le_bytes();
+                let x = (d.x as f32).to_le_bytes();
+                let y = (d.y as f32).to_le_bytes();
                 let mut r = Vec::with_capacity(x.len() + y.len());
-                r.extend_from_slice(&x);
+                r.extend_from_slice(&y);
                 r.extend_from_slice(&y);
                 r
             })
             .collect();
+        dbg!(&bytes);
 
         let mut i = Image::new(
             Extent3d {
@@ -77,6 +78,7 @@ impl Waves {
             bevy::render::render_resource::TextureFormat::Rg32Float,
             RenderAssetUsages::all(),
         );
+
         i.sampler = ImageSampler::nearest();
 
         i
@@ -85,8 +87,17 @@ impl Waves {
     /// returning height, and rising(true) or lowering(false)
     /// x, y in world space
     #[allow(dead_code)]
-    pub fn wave_height(&self, _x: f32, _y: f32, _t: f32) -> (f32, bool) {
-        (0.0, false)
+    pub fn wave_height(&self, p: Vec2, t: f32) -> (f32, bool) {
+        let index = world_2_chunk(p);
+        let dir = self.get(index.0, index.1);
+        let dir = Vec2::new(dir.x as f32, dir.y as f32).normalize();
+
+        let v = p.dot(dir);
+
+        let t1 = (v + t).sin();
+        let t2 = (v + t + 0.001).sin();
+
+        (t1, t1 < t2)
     }
 
     #[allow(dead_code)]

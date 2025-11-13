@@ -1,5 +1,6 @@
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
+    @location(0) world_position: vec4<f32>,
     @location(2) uv: vec2<f32>,
 }
 
@@ -13,6 +14,7 @@ struct CustomMaterial {
 @group(2) @binding(2) var height_texture_sampler: sampler;
 @group(2) @binding(3) var waves_texture: texture_2d<f32>;
 @group(2) @binding(4) var waves_texture_sampler: sampler;
+
 
 const UV_STEPS = 64.0;
 
@@ -37,6 +39,22 @@ fn v2(x: f32, y: f32) -> vec2<f32> {
 
 fn h(p: vec2<f32>) -> f32 {
     return textureSample(height_texture, height_texture_sampler, v2(p.x, 1.0 - p.y)).r;
+}
+
+fn w(p: vec2<f32>) -> vec2<f32> {
+    return textureSample(waves_texture, waves_texture_sampler, v2(p.x, 1.0 - p.y)).rg;
+}
+
+fn wave_height(p: vec2<f32>, uv: vec2<f32>, t: f32) -> f32 {
+    let dir_global = w(uv);
+    var dir = normalize(dir_global);
+
+    let v = dot(p*0.05, dir);
+
+    let t1 = sin(v + t*5.5);
+
+    return t1;
+    // return dir.y;
 }
 
 // top, left, right, bottom
@@ -138,27 +156,16 @@ fn shore_dist(uv: vec2<f32>, h: f32) -> f32 {
 fn fragment(
     mesh: VertexOutput,
 ) -> @location(0) vec4<f32> {
-    // How to decide on a color?
-    // I have the bilinear height and the block height
-    // The block height decides the main type of terrain, maybe later combined with a separate texture for biome data.
-    // For merging the blocks, I can take a look at the block height of the closest neighboring block.
-    // Additionally I need the distance to the closest block for the specific pixel.
-    // So I need a function similar to the bilinear_height, returning height and distance.
-    // I can use the bilinear height to guide the transition
     let block_height = h(mesh.uv);
     let local_height = bilinear_height(mesh.uv);
-    // let border_dist = distance_to_closest_neighbor(mesh.uv);
 
     let water = water_color(block_height, local_height, mesh.uv);
 
     let ground = ground_color(block_height, local_height, mesh.uv);
 
-    // let c = merge_colors(water, ground);
-    // let c: vec3<f32> = vec3<f32>(0.2, .05, 0.1) * block_height;
-    // let c = vec3<f32>(mesh.uv, block_height);
     var c: vec3<f32>;
     if block_height < 0.5 {
-        c = vec3<f32>(0.0, 0.0, 1.0);
+        c = vec3<f32>(0.0, 0.0, 1.0) * (wave_height(mesh.world_position.xy, mesh.uv, material.time.x) + 1.0)*0.5;
     } else if block_height == 0.5 {
         c = vec3<f32>(0.5);
     } else {
