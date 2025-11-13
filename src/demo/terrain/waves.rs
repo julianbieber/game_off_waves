@@ -99,7 +99,7 @@ impl Waves {
                 let v_y = v.y;
                 s.push_str(format!("|{v_x:02},{v_y:02}|").as_str());
             }
-            s.push_str("\n");
+            s.push('\n');
         }
         s
     }

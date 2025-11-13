@@ -34,10 +34,10 @@ pub fn world_2_chunk(p: Vec2) -> (usize, usize) {
     //  00,  01,  02,  03,  04,  05,  06,  07,  08,  09,  10,  11,  12,  13,  14,  15, 00, 01, 02, 03
 
     if aligned_chunk_index.0 < 0 && within_chunk_index.0 != 0 {
-        within_chunk_index.0 = SQUARE as isize + within_chunk_index.0;
+        within_chunk_index.0 += SQUARE as isize;
     }
     if aligned_chunk_index.1 < 0 && within_chunk_index.1 != 0 {
-        within_chunk_index.1 = SQUARE as isize + within_chunk_index.1;
+        within_chunk_index.1 += SQUARE as isize;
     }
 
     (within_chunk_index.0 as usize, within_chunk_index.1 as usize)
