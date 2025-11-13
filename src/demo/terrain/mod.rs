@@ -45,14 +45,16 @@ fn spawn_terrain(
         height_texture,
         wave_texture,
     });
+    let land_collider = terrain.land_colliders(Vec2::ZERO);
 
     commands.spawn((
         Mesh2d(mesh),
         MeshMaterial2d(material),
         Transform::from_translation(Vec3::ZERO),
+        terrain,
+        waves,
     ));
 
-    let land_collider = terrain.land_colliders(Vec2::ZERO);
     for c in land_collider {
         commands.spawn((c.0, c.1, RigidBody::Static));
     }

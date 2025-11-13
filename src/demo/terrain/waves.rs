@@ -4,6 +4,7 @@ use bevy::{
 
 use crate::demo::terrain::height::{SQUARE, TerrainChunk, WATER_LEVEL, world_2_chunk};
 
+#[derive(Component)]
 pub struct Waves {
     directions: Vec<Vec2>,
 }
@@ -75,8 +76,7 @@ impl Waves {
 
     /// returning height, and rising(true) or lowering(false)
     /// x, y in world space
-    #[allow(dead_code)]
-    pub fn wave_height(&self, p: Vec2, t: f32) -> (f32, bool) {
+    pub fn wave_height(&self, p: Vec2, t: f32) -> (Vec2, f32, bool) {
         let index = world_2_chunk(p);
         let dir = self.get(index.0, index.1);
         let dir = Vec2::new(dir.x as f32, dir.y as f32).normalize();
@@ -86,7 +86,7 @@ impl Waves {
         let t1 = (v + t).sin();
         let t2 = (v + t + 0.001).sin();
 
-        (t1, t1 < t2)
+        (dir, t1, t1 < t2)
     }
 
     #[allow(dead_code)]
@@ -124,7 +124,7 @@ impl Waves {
     }
 }
 
-pub fn square_neighborhood(cx: isize, cy: isize, r: isize) -> impl Iterator<Item = (usize, usize)> {
+fn square_neighborhood(cx: isize, cy: isize, r: isize) -> impl Iterator<Item = (usize, usize)> {
     let x0 = (cx - r).max(0);
     let y0 = (cy - r).max(0);
     let x1 = (cx + r).min(SQUARE as isize - 1);

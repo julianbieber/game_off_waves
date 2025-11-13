@@ -18,12 +18,12 @@ use std::f32;
 use avian2d::prelude::*;
 use bevy::prelude::*;
 
-use crate::{AppSystems, PausableSystems};
+use crate::{AppSystems, PausableSystems, demo::terrain::waves::Waves};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
         Update,
-        (apply_movement, rotate_forward)
+        (apply_movement, rotate_forward, apply_waves)
             .chain()
             .in_set(AppSystems::Update)
             .in_set(PausableSystems),
@@ -66,6 +66,25 @@ fn apply_movement(
         let new_force = forward * controller.intent * 300.0; //* time.delta_secs();
 
         forces.apply_force(new_force);
+    }
+}
+
+fn apply_waves(
+    time: Res<Time>,
+    mut movement_query: Query<(&Transform, Forces)>,
+    waves: Query<&Waves>,
+) {
+    let waves = waves.single().unwrap();
+
+    for (transform, mut _forces) in &mut movement_query {
+        let (_wave_dir, _wave_height, _up) =
+            waves.wave_height(transform.translation.xy(), time.elapsed_secs());
+
+        if _up {
+            _forces.apply_force(_wave_dir * 100.0);
+        } else {
+            _forces.apply_force(-_wave_dir * 100.0);
+        }
     }
 }
 

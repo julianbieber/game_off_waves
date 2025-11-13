@@ -12,6 +12,7 @@ pub const CHUNK_SIZE_PIXELS: usize = 4096;
 pub const SQUARE: usize = 16;
 pub const WATER_LEVEL: f32 = 0.5;
 
+#[derive(Component)]
 pub struct TerrainChunk {
     heights: Vec<f32>,
 }
