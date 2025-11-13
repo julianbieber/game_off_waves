@@ -6,7 +6,9 @@ use bevy::{prelude::*, sprite_render::Material2dPlugin};
 use noiz::prelude::*;
 
 use crate::{
-    demo::terrain::height::{TerrainChunk, TerrainMaterial, update_time},
+    demo::terrain::height::{
+        CHUNK_SIZE_PIXELS, SQUARE, TerrainChunk, TerrainMaterial, update_time,
+    },
     screens::Screen,
 };
 
@@ -20,8 +22,6 @@ impl Plugin for TerrainPlugin {
             .add_plugins(Material2dPlugin::<TerrainMaterial>::default());
     }
 }
-
-const CHUNK_SIZE_PIXELS: usize = 4096;
 
 fn spawn_terrain(
     mut commands: Commands,
@@ -60,8 +60,8 @@ fn generate_chunk() -> TerrainChunk {
     noise.set_seed(123);
     noise.set_frequency(1.1);
 
-    for y in 0..TerrainChunk::SQUARE {
-        for x in 0..TerrainChunk::SQUARE {
+    for y in 0..SQUARE {
+        for x in 0..SQUARE {
             let world_pos = Vec2::new(x as f32, y as f32);
             let height = noise.sample(world_pos);
             // let height = if (y + x * TerrainChunk::SQUARE + 1) % 2 == 0 {

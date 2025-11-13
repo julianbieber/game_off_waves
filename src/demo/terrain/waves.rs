@@ -1,25 +1,26 @@
 use bevy::prelude::*;
 
-use crate::demo::terrain::height::TerrainChunk;
+use crate::demo::terrain::height::{SQUARE, TerrainChunk, WATER_LEVEL};
 
 pub struct Waves {
     directions: Vec<IVec2>,
 }
 
 impl Waves {
+    #[allow(dead_code)]
     pub fn init(terrain: &TerrainChunk) -> Waves {
-        let directions = vec![IVec2::ZERO; TerrainChunk::SQUARE * TerrainChunk::SQUARE];
+        let directions = vec![IVec2::ZERO; SQUARE * SQUARE];
         let mut w = Waves { directions };
-        for x in 0..TerrainChunk::SQUARE as isize {
-            for y in 0..TerrainChunk::SQUARE as isize {
-                let mut min_x_d = TerrainChunk::SQUARE as isize;
-                let mut x_d = if x > TerrainChunk::SQUARE as isize / 2 {
+        for x in 0..SQUARE as isize {
+            for y in 0..SQUARE as isize {
+                let mut min_x_d = SQUARE as isize;
+                let mut x_d = if x > SQUARE as isize / 2 {
                     -x
                 } else {
-                    TerrainChunk::SQUARE as isize - x
+                    SQUARE as isize - x
                 };
-                for t_x in 0..TerrainChunk::SQUARE as isize {
-                    if terrain.get(t_x as usize, y as usize) > TerrainChunk::WATER_LEVEL {
+                for t_x in 0..SQUARE as isize {
+                    if terrain.get(t_x as usize, y as usize) > WATER_LEVEL {
                         let d = (t_x - x).abs();
                         if d < min_x_d {
                             min_x_d = d;
@@ -27,15 +28,15 @@ impl Waves {
                         }
                     }
                 }
-                let mut min_y_d = TerrainChunk::SQUARE as isize;
-                let mut y_d = if y > TerrainChunk::SQUARE as isize / 2 {
+                let mut min_y_d = SQUARE as isize;
+                let mut y_d = if y > SQUARE as isize / 2 {
                     -y
                 } else {
-                    TerrainChunk::SQUARE as isize - y
+                    SQUARE as isize - y
                 };
 
-                for t_y in 0..TerrainChunk::SQUARE as isize {
-                    if terrain.get(x as usize, t_y as usize) > TerrainChunk::WATER_LEVEL {
+                for t_y in 0..SQUARE as isize {
+                    if terrain.get(x as usize, t_y as usize) > WATER_LEVEL {
                         let d = (t_y - y).abs();
                         if d < min_y_d {
                             min_y_d = d;
@@ -49,11 +50,18 @@ impl Waves {
         w
     }
 
+    /// returning height, and rising(true) or lowering(false)
+    /// x, y in world space
+    #[allow(dead_code)]
+    fn wave_height(&self, _x: f32, _y: f32, _t: f32) -> (f32, bool) {
+        (0.0, false)
+    }
+
     #[allow(dead_code)]
     pub fn format(&self) -> String {
         let mut s = String::new();
-        for x in 0..TerrainChunk::SQUARE {
-            for y in 0..TerrainChunk::SQUARE {
+        for x in 0..SQUARE {
+            for y in 0..SQUARE {
                 let v = self.get(x, y);
                 let v_x = v.x;
                 let v_y = v.y;
@@ -65,20 +73,21 @@ impl Waves {
     }
 
     /// assumes x and y 0..SQUARE
+    #[allow(dead_code)]
     pub fn set(&mut self, x: usize, y: usize, dir: IVec2) {
-        assert!(x < TerrainChunk::SQUARE);
-        assert!(y < TerrainChunk::SQUARE);
+        assert!(x < SQUARE);
+        assert!(y < SQUARE);
 
-        let i = y * TerrainChunk::SQUARE + x;
+        let i = y * SQUARE + x;
         self.directions[i] = dir;
     }
 
     #[allow(dead_code)]
     pub fn get(&self, x: usize, y: usize) -> IVec2 {
-        assert!(x < TerrainChunk::SQUARE);
-        assert!(y < TerrainChunk::SQUARE);
+        assert!(x < SQUARE);
+        assert!(y < SQUARE);
 
-        let i = y * TerrainChunk::SQUARE + x;
+        let i = y * SQUARE + x;
         self.directions[i]
     }
 }
@@ -88,18 +97,20 @@ mod test {
     use bevy::math::IVec2;
 
     #[allow(unused)]
+    use crate::demo::terrain::height::SQUARE;
+    #[allow(unused)]
     use crate::demo::terrain::{height::TerrainChunk, waves::Waves};
 
     #[test]
     fn waves_init() {
         let mut terrain = TerrainChunk::zero();
-        for x in [0, TerrainChunk::SQUARE - 1] {
-            for y in 0..TerrainChunk::SQUARE {
+        for x in [0, SQUARE - 1] {
+            for y in 0..SQUARE {
                 terrain.set(x, y, 1.0);
             }
         }
-        for y in [0, TerrainChunk::SQUARE - 1] {
-            for x in 0..TerrainChunk::SQUARE {
+        for y in [0, SQUARE - 1] {
+            for x in 0..SQUARE {
                 terrain.set(x, y, 1.0);
             }
         }
