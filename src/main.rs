@@ -15,6 +15,8 @@ mod theme;
 use avian2d::{PhysicsPlugins, prelude::*};
 use bevy::{asset::AssetMetaCheck, prelude::*};
 
+use bevy::ecs::error::warn;
+
 fn main() -> AppExit {
     App::new().add_plugins(AppPlugin).run()
 }
@@ -59,6 +61,7 @@ impl Plugin for AppPlugin {
         ));
 
         app.insert_resource(Gravity::ZERO);
+        app.set_error_handler(warn);
 
         // Order new `AppSystems` variants by adding them here:
         app.configure_sets(

@@ -76,15 +76,16 @@ impl Waves {
 
     /// returning height, and rising(true) or lowering(false)
     /// x, y in world space
+    #[allow(dead_code)]
     pub fn wave_height(&self, p: Vec2, t: f32) -> (Vec2, f32, bool) {
         let index = world_2_chunk(p);
         let dir = self.get(index.0, index.1);
         let dir = Vec2::new(dir.x as f32, dir.y as f32).normalize();
 
-        let v = p.dot(dir);
+        let v = (p * 0.05).dot(dir);
 
-        let t1 = (v + t).sin();
-        let t2 = (v + t + 0.001).sin();
+        let t1 = (v + (t * 5.5)).sin();
+        let t2 = (v + (t * 5.5) + 0.001).sin();
 
         (dir, t1, t1 < t2)
     }

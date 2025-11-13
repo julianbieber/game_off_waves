@@ -73,19 +73,20 @@ fn apply_waves(
     time: Res<Time>,
     mut movement_query: Query<(&Transform, Forces)>,
     waves: Query<&Waves>,
-) {
-    let waves = waves.single().unwrap();
+) -> std::result::Result<(), BevyError> {
+    let waves = waves.single()?;
 
     for (transform, mut _forces) in &mut movement_query {
         let (_wave_dir, _wave_height, _up) =
             waves.wave_height(transform.translation.xy(), time.elapsed_secs());
 
         if _up {
-            _forces.apply_force(_wave_dir * 100.0);
+            _forces.apply_force(_wave_dir * 1000.0);
         } else {
-            _forces.apply_force(-_wave_dir * 100.0);
+            _forces.apply_force(-_wave_dir * 1000.0);
         }
     }
+    Ok(())
 }
 
 fn rotate_forward(mut velocities: Query<(&Transform, Forces), With<MovementController>>) {
