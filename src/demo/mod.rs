@@ -11,6 +11,7 @@ pub mod level;
 mod movement;
 pub mod player;
 mod terrain;
+pub mod weapons;
 
 #[derive(PhysicsLayer, Default)]
 pub enum GameCollisionLayer {
@@ -27,5 +28,11 @@ pub(super) fn plugin(app: &mut App) {
         player::plugin,
         terrain::TerrainPlugin,
         enemy::EnemyPlugin,
+        weapons::WeaponPlugin,
     ));
+}
+
+pub fn forward_vec(transform: Transform) -> Vec2 {
+    let angle = transform.rotation.to_euler(EulerRot::XYZ).2 + std::f32::consts::FRAC_PI_2;
+    Vec2::new(angle.cos(), angle.sin())
 }

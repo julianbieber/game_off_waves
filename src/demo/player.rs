@@ -14,7 +14,6 @@ use crate::{
 };
 
 pub(super) fn plugin(app: &mut App) {
-    // Record directional input as movement controls.
     app.add_systems(
         Update,
         (
