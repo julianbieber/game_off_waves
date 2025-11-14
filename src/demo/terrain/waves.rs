@@ -48,8 +48,8 @@ impl Waves {
             .directions
             .iter()
             .flat_map(|d| {
-                let x = (d.x as f32).to_le_bytes();
-                let y = (d.y as f32).to_le_bytes();
+                let x = d.x.to_le_bytes();
+                let y = d.y.to_le_bytes();
                 let mut r = Vec::with_capacity(x.len() + y.len());
                 r.extend_from_slice(&x);
                 r.extend_from_slice(&y);
