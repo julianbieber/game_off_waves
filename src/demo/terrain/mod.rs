@@ -6,9 +6,12 @@ use bevy::{prelude::*, sprite_render::Material2dPlugin};
 use noiz::prelude::*;
 
 use crate::{
-    demo::terrain::{
-        height::{CHUNK_SIZE_PIXELS, SQUARE, TerrainChunk, TerrainMaterial, update_time},
-        waves::Waves,
+    demo::{
+        enemy::Spawner,
+        terrain::{
+            height::{CHUNK_SIZE_PIXELS, SQUARE, TerrainChunk, TerrainMaterial, update_time},
+            waves::Waves,
+        },
     },
     screens::Screen,
 };
@@ -48,7 +51,12 @@ fn spawn_terrain(
     let land_collider = terrain.land_colliders(Vec2::ZERO);
 
     for spawner in terrain.spawners(Vec2::ZERO) {
-        commands.spawn((Spawner, spawner));
+        commands.spawn((
+            Spawner {
+                timer: Timer::from_seconds(2.0, TimerMode::Repeating),
+            },
+            spawner,
+        ));
     }
     commands.spawn((
         Mesh2d(mesh),
@@ -85,6 +93,3 @@ fn generate_chunk() -> TerrainChunk {
 
     t
 }
-
-#[derive(Component)]
-struct Spawner;
