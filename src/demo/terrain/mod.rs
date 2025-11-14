@@ -47,6 +47,9 @@ fn spawn_terrain(
     });
     let land_collider = terrain.land_colliders(Vec2::ZERO);
 
+    for spawner in terrain.spawners(Vec2::ZERO) {
+        commands.spawn((Spawner, spawner));
+    }
     commands.spawn((
         Mesh2d(mesh),
         MeshMaterial2d(material),
@@ -82,3 +85,6 @@ fn generate_chunk() -> TerrainChunk {
 
     t
 }
+
+#[derive(Component)]
+struct Spawner;

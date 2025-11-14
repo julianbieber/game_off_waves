@@ -110,6 +110,28 @@ impl TerrainChunk {
         colliders.shrink_to_fit();
         colliders
     }
+
+    pub fn spawners(&self, offset: Vec2) -> Vec<Transform> {
+        let mut spawners = Vec::with_capacity(SQUARE * SQUARE);
+        let collider_size = (CHUNK_SIZE_PIXELS / SQUARE) as f32;
+        for y in 0..SQUARE {
+            for x in 0..SQUARE {
+                let height = self.get(x, y);
+                if height < WATER_LEVEL {
+                    let x = x as f32 * collider_size + offset.x
+                        - collider_size * (SQUARE / 2) as f32
+                        + collider_size * 0.5;
+                    let y = y as f32 * collider_size + offset.y
+                        - collider_size * (SQUARE / 2) as f32
+                        + collider_size * 0.5;
+                    spawners.push(Transform::from_xyz(x, y, 0.0));
+                }
+            }
+        }
+
+        spawners.shrink_to_fit();
+        spawners
+    }
 }
 
 pub fn update_time(
