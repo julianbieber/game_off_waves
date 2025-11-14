@@ -3,6 +3,7 @@
 //! Feel free to change the logic found here if you feel like tinkering around
 //! to get a feeling for the template.
 
+use avian2d::prelude::PhysicsLayer;
 use bevy::prelude::*;
 
 pub mod enemy;
@@ -10,6 +11,14 @@ pub mod level;
 mod movement;
 pub mod player;
 mod terrain;
+
+#[derive(PhysicsLayer, Default)]
+pub enum GameCollisionLayer {
+    #[default]
+    Terrain,
+    Player,
+    Enemy,
+}
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins((

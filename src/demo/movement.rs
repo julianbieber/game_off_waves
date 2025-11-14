@@ -18,7 +18,10 @@ use std::f32;
 use avian2d::prelude::*;
 use bevy::prelude::*;
 
-use crate::{AppSystems, PausableSystems, demo::terrain::waves::Waves};
+use crate::{
+    AppSystems, PausableSystems,
+    demo::{player::Player, terrain::waves::Waves},
+};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
@@ -59,7 +62,7 @@ fn apply_movement(
     mut movement_query: Query<(&MovementController, &Transform, Forces)>,
 ) {
     for (controller, transform, mut forces) in &mut movement_query {
-        forces.apply_angular_impulse(controller.rotation_intent * 300.0);
+        forces.apply_angular_impulse(controller.rotation_intent * 600.0);
         let angle = transform.rotation.to_euler(EulerRot::XYZ).2 + f32::consts::FRAC_PI_2;
         let forward = Vec2::new(angle.cos(), angle.sin());
 
@@ -84,15 +87,17 @@ fn apply_waves(
         }
 
         if _up {
-            _forces.apply_force(_wave_dir * 1000.0);
+            _forces.apply_force(-_wave_dir * 1000.0);
         } else {
-            _forces.apply_force(-_wave_dir * 500.0);
+            _forces.apply_force(_wave_dir * 500.0);
         }
     }
     Ok(())
 }
 
-fn rotate_forward(mut velocities: Query<(&Transform, Forces), With<MovementController>>) {
+fn rotate_forward(
+    mut velocities: Query<(&Transform, Forces), (With<MovementController>, With<Player>)>,
+) {
     for (transform, mut forces) in &mut velocities {
         let angle = transform.rotation.to_euler(EulerRot::XYZ).2 + f32::consts::FRAC_PI_2;
         let forward = Vec2::new(angle.cos(), angle.sin());

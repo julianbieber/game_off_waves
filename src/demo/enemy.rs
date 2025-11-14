@@ -1,11 +1,15 @@
-use avian2d::prelude::{Collider, RigidBody};
+use avian2d::prelude::{AngularDamping, Collider, CollisionLayers, LinearDamping, Mass, RigidBody};
 use bevy::{
+    math::ops::atan2,
     prelude::*,
     render::render_resource::AsBindGroup,
     sprite_render::{Material2d, Material2dPlugin},
 };
 
-use crate::screens::Screen;
+use crate::{
+    demo::{GameCollisionLayer, movement::MovementController, player::Player},
+    screens::Screen,
+};
 
 pub struct EnemyPlugin;
 
@@ -15,7 +19,11 @@ impl Plugin for EnemyPlugin {
             remaining_in_wave: 100,
         })
         .add_systems(Update, update_time.run_if(in_state(Screen::Gameplay)))
-        .add_systems(Update, eval_spawners.run_if(in_state(Screen::Gameplay)))
+        .add_systems(
+            Update,
+            (eval_spawners, remove_stuck_enemies, enemy_movement)
+                .run_if(in_state(Screen::Gameplay)),
+        )
         .add_plugins(Material2dPlugin::<EnemyMaterial>::default());
     }
 }
@@ -70,6 +78,12 @@ pub struct SpawnerConfig {
 #[derive(Component)]
 pub struct Enemy;
 
+#[derive(Component)]
+struct PositionRecording {
+    timer: Timer,
+    position: Vec3,
+}
+
 fn eval_spawners(
     time: Res<Time>,
     mut commands: Commands,
@@ -80,10 +94,18 @@ fn eval_spawners(
 ) {
     if config.remaining_in_wave > 0 {
         for (mut spawner, transform) in &mut spawners {
+            if config.remaining_in_wave == 0 {
+                break;
+            }
+
             spawner.timer.tick(time.delta());
             let mesh = meshes.add(Rectangle::new(100.0, 100.0));
             let material = materials.add(EnemyMaterial { time: Vec4::ZERO });
-            if spawner.timer.is_finished() && config.remaining_in_wave > 0 {
+            if spawner.timer.is_finished() {
+                let collision = CollisionLayers::new(
+                    GameCollisionLayer::Enemy,
+                    [GameCollisionLayer::Terrain, GameCollisionLayer::Player],
+                );
                 commands.spawn((
                     Enemy,
                     Mesh2d(mesh),
@@ -91,9 +113,63 @@ fn eval_spawners(
                     transform.clone(),
                     Collider::rectangle(100.0, 100.0),
                     RigidBody::Dynamic,
+                    MovementController {
+                        max_speed: 300.0,
+                        ..default()
+                    },
+                    Mass(10.0),
+                    AngularDamping(2.0),
+                    LinearDamping(0.2),
+                    collision,
+                    PositionRecording {
+                        timer: Timer::from_seconds(10.0, TimerMode::Repeating),
+                        position: transform.translation,
+                    },
                 ));
                 config.remaining_in_wave -= 1;
             }
+            if spawner.timer.is_finished() {
+                spawner.timer.reset();
+            }
         }
     }
+}
+
+fn remove_stuck_enemies(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut config: ResMut<SpawnerConfig>,
+    mut enemies: Query<(Entity, &mut PositionRecording, &Transform), With<Enemy>>,
+) {
+    for (entity, mut record, transform) in &mut enemies {
+        record.timer.tick(time.delta());
+        if record.timer.is_finished() {
+            record.timer.reset();
+            if record.position.distance_squared(transform.translation) < 1000.0 {
+                commands.entity(entity).despawn();
+                config.remaining_in_wave += 1;
+            } else {
+                record.position = transform.translation;
+            }
+        }
+    }
+}
+
+fn enemy_movement(
+    player_position: Query<&Transform, With<Player>>,
+    mut enemies: Query<(&mut MovementController, &Transform)>,
+) -> std::result::Result<(), BevyError> {
+    let player_position = player_position.single()?.translation;
+    for (mut enemy_movement, transform) in &mut enemies {
+        let angle = transform.rotation.to_euler(EulerRot::XYZ).2 + std::f32::consts::FRAC_PI_2;
+        let forward = Vec2::new(angle.cos(), angle.sin());
+
+        let to_player = (player_position - transform.translation).normalize().xy();
+
+        enemy_movement.intent = 10.0;
+        let a = to_player;
+        let b = forward;
+        enemy_movement.rotation_intent = -atan2(a.x * b.y - a.y * b.x, a.x * b.x + a.y * b.y);
+    }
+    Ok(())
 }

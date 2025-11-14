@@ -1,13 +1,17 @@
 //! Player-specific behavior.
 
-use avian2d::prelude::{AngularDamping, Collider, LinearDamping, Mass, RigidBody};
+use avian2d::prelude::{AngularDamping, Collider, CollisionLayers, LinearDamping, Mass, RigidBody};
 use bevy::{
     prelude::*,
     render::render_resource::AsBindGroup,
     sprite_render::{Material2d, Material2dPlugin},
 };
 
-use crate::{AppSystems, PausableSystems, demo::movement::MovementController, screens::Screen};
+use crate::{
+    AppSystems, PausableSystems,
+    demo::{GameCollisionLayer, movement::MovementController},
+    screens::Screen,
+};
 
 pub(super) fn plugin(app: &mut App) {
     // Record directional input as movement controls.
@@ -34,6 +38,11 @@ pub fn player(
 ) -> impl Bundle {
     let mesh = meshes.add(Rectangle::new(300.0, 500.0));
     let material = materials.add(BoatMaterial { time: Vec4::ZERO });
+
+    let collision = CollisionLayers::new(
+        GameCollisionLayer::Player,
+        [GameCollisionLayer::Terrain, GameCollisionLayer::Enemy],
+    );
     (
         Name::new("Player"),
         Player,
@@ -49,6 +58,7 @@ pub fn player(
         AngularDamping(2.0),
         LinearDamping(0.2),
         Collider::rectangle(100.0, 200.0),
+        collision,
     )
 }
 
@@ -76,7 +86,7 @@ fn follow_cam(
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Default, Reflect)]
 #[reflect(Component)]
-struct Player;
+pub struct Player;
 
 fn record_player_directional_input(
     input: Res<ButtonInput<KeyCode>>,
