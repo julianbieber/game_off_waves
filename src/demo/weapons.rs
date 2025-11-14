@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use bevy::{
     prelude::*,
     render::render_resource::AsBindGroup,
@@ -11,24 +9,21 @@ use crate::{demo::forward_vec, screens::Screen};
 pub struct WeaponPlugin;
 
 #[derive(Clone, Copy)]
+#[allow(dead_code)]
 pub enum WeaponType {
-    Canon {
-        delay: Duration,
-        angle: f32,
-        range: f32,
-    },
+    Canon { _angle: f32, _range: f32 },
 }
 
 #[derive(Component)]
 pub struct CanonBall {
-    remaining: Timer,
+    pub remaining: Timer,
 }
 
 #[derive(Component)]
 pub struct WeaponSlots {
-    left: [Option<WeaponType>; 3],
-    right: [Option<WeaponType>; 3],
-    front: Option<WeaponType>,
+    pub left: [Option<(Timer, WeaponType)>; 3],
+    pub right: [Option<(Timer, WeaponType)>; 3],
+    pub front: Option<(Timer, WeaponType)>,
 }
 
 impl Plugin for WeaponPlugin {
@@ -48,13 +43,13 @@ impl Plugin for WeaponPlugin {
 }
 
 fn eval_weapons(
-    _time: Res<Time>,
-    mut weapon_holders: Query<(&WeaponSlots, &Transform)>,
+    time: Res<Time>,
+    mut weapon_holders: Query<(&mut WeaponSlots, &Transform)>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<WeaponMaterial>>,
 ) {
-    for (weapon_holder, transform) in &mut weapon_holders {
+    for (mut weapon_holder, transform) in &mut weapon_holders {
         let angle = transform.rotation.to_euler(EulerRot::XYZ).2 + std::f32::consts::FRAC_PI_2;
         let forward = Vec2::new(angle.cos(), angle.sin());
         let left = Vec2::new(
@@ -66,11 +61,62 @@ fn eval_weapons(
             (angle + std::f32::consts::FRAC_PI_2).sin(),
         );
 
-        for (i, left_slot) in weapon_holder.left.iter().enumerate() {
-            if let Some(_left_slot) = left_slot {
-                let i = i as f32 - 1.0;
-                let weapon_position = transform.translation.xy() + left + i * forward;
+        let side_offset = 30.0;
+        let between_side = 30.0;
 
+        for (i, left_slot) in weapon_holder.left.iter_mut().enumerate() {
+            if let Some(left_slot) = left_slot {
+                left_slot.0.tick(time.delta());
+                if left_slot.0.is_finished() {
+                    let i = i as f32 - 1.0;
+                    let weapon_position = transform.translation.xy()
+                        + left * side_offset
+                        + i * forward * between_side;
+
+                    commands.spawn(projectile(
+                        Transform::from_translation(Vec3::new(
+                            weapon_position.x,
+                            weapon_position.y,
+                            0.0,
+                        ))
+                        .with_rotation(Quat::from_axis_angle(
+                            Vec3::Z,
+                            angle + std::f32::consts::PI,
+                        )),
+                        Timer::from_seconds(3.0, TimerMode::Once),
+                        &mut meshes,
+                        &mut materials,
+                    ));
+                }
+            }
+        }
+        for (i, right_slot) in weapon_holder.right.iter_mut().enumerate() {
+            if let Some(right_slot) = right_slot {
+                right_slot.0.tick(time.delta());
+                if right_slot.0.is_finished() {
+                    let i = i as f32 - 1.0;
+                    let weapon_position = transform.translation.xy()
+                        + right * side_offset
+                        + i * forward * between_side;
+                    commands.spawn(projectile(
+                        Transform::from_translation(Vec3::new(
+                            weapon_position.x,
+                            weapon_position.y,
+                            0.0,
+                        ))
+                        .with_rotation(Quat::from_axis_angle(Vec3::Z, angle)),
+                        Timer::from_seconds(3.0, TimerMode::Once),
+                        &mut meshes,
+                        &mut materials,
+                    ));
+                }
+            }
+        }
+
+        if let Some(front) = &mut weapon_holder.front {
+            front.0.tick(time.delta());
+            if front.0.is_finished() {
+                let weapon_position = transform.translation.xy() + forward * 100.0;
                 commands.spawn(projectile(
                     Transform::from_translation(Vec3::new(
                         weapon_position.x,
@@ -86,37 +132,6 @@ fn eval_weapons(
                     &mut materials,
                 ));
             }
-        }
-        for (i, right_slot) in weapon_holder.right.iter().enumerate() {
-            if let Some(_right_slot) = right_slot {
-                let i = i as f32 - 1.0;
-                let weapon_position = transform.translation.xy() + right + i * forward;
-                commands.spawn(projectile(
-                    Transform::from_translation(Vec3::new(
-                        weapon_position.x,
-                        weapon_position.y,
-                        0.0,
-                    ))
-                    .with_rotation(Quat::from_axis_angle(
-                        Vec3::Z,
-                        angle + std::f32::consts::FRAC_PI_2,
-                    )),
-                    Timer::from_seconds(3.0, TimerMode::Once),
-                    &mut meshes,
-                    &mut materials,
-                ));
-            }
-        }
-
-        if let Some(_front) = weapon_holder.front {
-            let weapon_position = transform.translation.xy() + forward;
-            commands.spawn(projectile(
-                Transform::from_translation(Vec3::new(weapon_position.x, weapon_position.y, 0.0))
-                    .with_rotation(Quat::from_axis_angle(Vec3::Z, angle)),
-                Timer::from_seconds(3.0, TimerMode::Once),
-                &mut meshes,
-                &mut materials,
-            ));
         }
     }
 }
@@ -137,9 +152,9 @@ fn projectile(
     )
 }
 
-fn cannonball_flight(mut balls: Query<&mut Transform, With<CanonBall>>) {
+fn cannonball_flight(mut balls: Query<&mut Transform, With<CanonBall>>, time: Res<Time>) {
     for mut ball in &mut balls {
-        let forward = forward_vec(*ball);
+        let forward = forward_vec(*ball) * 300.0 * time.delta_secs();
         ball.translation += Vec3::new(forward.x, forward.y, 0.0);
     }
 }

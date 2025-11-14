@@ -110,7 +110,7 @@ fn eval_spawners(
                     Enemy,
                     Mesh2d(mesh),
                     MeshMaterial2d(material),
-                    transform.clone(),
+                    *transform,
                     Collider::rectangle(100.0, 100.0),
                     RigidBody::Dynamic,
                     MovementController {
@@ -157,7 +157,7 @@ fn remove_stuck_enemies(
 
 fn enemy_movement(
     player_position: Query<&Transform, With<Player>>,
-    mut enemies: Query<(&mut MovementController, &Transform)>,
+    mut enemies: Query<(&mut MovementController, &Transform), (Without<Player>, With<Enemy>)>,
 ) -> std::result::Result<(), BevyError> {
     let player_position = player_position.single()?.translation;
     for (mut enemy_movement, transform) in &mut enemies {
@@ -170,6 +170,9 @@ fn enemy_movement(
         let a = to_player;
         let b = forward;
         enemy_movement.rotation_intent = -atan2(a.x * b.y - a.y * b.x, a.x * b.x + a.y * b.y);
+        if enemy_movement.rotation_intent.is_nan() {
+            enemy_movement.rotation_intent = 0.0;
+        }
     }
     Ok(())
 }

@@ -9,7 +9,11 @@ use bevy::{
 
 use crate::{
     AppSystems, PausableSystems,
-    demo::{GameCollisionLayer, movement::MovementController},
+    demo::{
+        GameCollisionLayer,
+        movement::MovementController,
+        weapons::{WeaponSlots, WeaponType},
+    },
     screens::Screen,
 };
 
@@ -58,6 +62,62 @@ pub fn player(
         LinearDamping(0.2),
         Collider::rectangle(100.0, 200.0),
         collision,
+        WeaponSlots {
+            left: [
+                Some((
+                    Timer::from_seconds(3.0, TimerMode::Repeating),
+                    WeaponType::Canon {
+                        _angle: 0.0,
+                        _range: 0.0,
+                    },
+                )),
+                Some((
+                    Timer::from_seconds(3.0, TimerMode::Repeating),
+                    WeaponType::Canon {
+                        _angle: 0.0,
+                        _range: 0.0,
+                    },
+                )),
+                Some((
+                    Timer::from_seconds(3.0, TimerMode::Repeating),
+                    WeaponType::Canon {
+                        _angle: 0.0,
+                        _range: 0.0,
+                    },
+                )),
+            ],
+            right: [
+                Some((
+                    Timer::from_seconds(3.0, TimerMode::Repeating),
+                    WeaponType::Canon {
+                        _angle: 0.0,
+                        _range: 0.0,
+                    },
+                )),
+                Some((
+                    Timer::from_seconds(3.0, TimerMode::Repeating),
+                    WeaponType::Canon {
+                        _angle: 0.0,
+                        _range: 0.0,
+                    },
+                )),
+                Some((
+                    Timer::from_seconds(3.0, TimerMode::Repeating),
+                    WeaponType::Canon {
+                        _angle: 0.0,
+                        _range: 0.0,
+                    },
+                )),
+            ],
+            front: Some((
+                Timer::from_seconds(3.0, TimerMode::Repeating),
+                WeaponType::Canon {
+                    _angle: 0.0,
+                    _range: 0.0,
+                },
+            )),
+            // front: None,
+        },
     )
 }
 

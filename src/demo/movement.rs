@@ -79,17 +79,17 @@ fn apply_waves(
 ) -> std::result::Result<(), BevyError> {
     let waves = waves.single()?;
 
-    for (transform, mut _forces) in &mut movement_query {
-        let (_wave_dir, _wave_height, _up) =
+    for (transform, mut forces) in &mut movement_query {
+        let (wave_dir, _wave_height, up) =
             waves.wave_height(transform.translation.xy(), time.elapsed_secs());
-        if _wave_dir.is_nan() {
+        if wave_dir.is_nan() {
             continue;
         }
 
-        if _up {
-            _forces.apply_force(-_wave_dir * 1000.0);
+        if up {
+            forces.apply_force(-wave_dir * 1000.0);
         } else {
-            _forces.apply_force(_wave_dir * 500.0);
+            forces.apply_force(wave_dir * 500.0);
         }
     }
     Ok(())
