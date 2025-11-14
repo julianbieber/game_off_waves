@@ -5,6 +5,7 @@
 
 use bevy::prelude::*;
 
+pub mod enemy;
 pub mod level;
 mod movement;
 pub mod player;
@@ -16,5 +17,6 @@ pub(super) fn plugin(app: &mut App) {
         movement::plugin,
         player::plugin,
         terrain::TerrainPlugin,
+        enemy::EnemyPlugin,
     ));
 }
