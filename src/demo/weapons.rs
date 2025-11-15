@@ -4,7 +4,10 @@ use bevy::{
     sprite_render::{Material2d, Material2dPlugin},
 };
 
-use crate::{demo::forward_vec, screens::Screen};
+use crate::{
+    demo::{enemy::Enemy, forward_vec},
+    screens::Screen,
+};
 
 pub struct WeaponPlugin;
 
@@ -35,6 +38,7 @@ impl Plugin for WeaponPlugin {
                 update_time,
                 eval_weapons,
                 cannonball_despawn,
+                cannon_ball_hit,
             )
                 .run_if(in_state(Screen::Gameplay)),
         )
@@ -176,6 +180,21 @@ fn cannonball_despawn(
         ball.remaining.tick(time.delta());
         if ball.remaining.is_finished() {
             commands.entity(entity).despawn();
+        }
+    }
+}
+
+fn cannon_ball_hit(
+    balls: Query<(Entity, &Transform), (With<CanonBall>, Without<Enemy>)>,
+    enemies: Query<(Entity, &Transform), (With<Enemy>, Without<CanonBall>)>,
+    mut commands: Commands,
+) {
+    for ball in balls {
+        for enemy in enemies {
+            if ball.1.translation.distance_squared(enemy.1.translation) < 1000.0 {
+                commands.entity(ball.0).despawn();
+                commands.entity(enemy.0).despawn();
+            }
         }
     }
 }
