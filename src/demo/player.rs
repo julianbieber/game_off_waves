@@ -17,6 +17,24 @@ use crate::{
     screens::Screen,
 };
 
+#[derive(Component)]
+pub struct PlayerStats {
+    pub projectile_damage_percentage: f32,
+    pub projectile_speed_percentage: f32,
+    pub projectile_rate_percentage: f32,
+    pub _explosion_damage_percentage: f32,
+}
+impl Default for PlayerStats {
+    fn default() -> Self {
+        PlayerStats {
+            projectile_damage_percentage: 1.0,
+            projectile_speed_percentage: 1.0,
+            projectile_rate_percentage: 1.0,
+            _explosion_damage_percentage: 1.0,
+        }
+    }
+}
+
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
         Update,
@@ -46,6 +64,8 @@ pub fn player(
         GameCollisionLayer::Player,
         [GameCollisionLayer::Terrain, GameCollisionLayer::Enemy],
     );
+    let mut stats = PlayerStats::default();
+    stats.projectile_rate_percentage = 0.2;
     (
         Name::new("Player"),
         Player,
@@ -64,60 +84,19 @@ pub fn player(
         collision,
         WeaponSlots {
             left: [
-                Some((
-                    Timer::from_seconds(3.0, TimerMode::Repeating),
-                    WeaponType::Canon {
-                        _angle: 0.0,
-                        _range: 0.0,
-                    },
-                )),
-                Some((
-                    Timer::from_seconds(3.0, TimerMode::Repeating),
-                    WeaponType::Canon {
-                        _angle: 0.0,
-                        _range: 0.0,
-                    },
-                )),
-                Some((
-                    Timer::from_seconds(3.0, TimerMode::Repeating),
-                    WeaponType::Canon {
-                        _angle: 0.0,
-                        _range: 0.0,
-                    },
-                )),
+                Some(WeaponType::default_cannon(&stats)),
+                Some(WeaponType::default_cannon(&stats)),
+                Some(WeaponType::default_cannon(&stats)),
             ],
             right: [
-                Some((
-                    Timer::from_seconds(3.0, TimerMode::Repeating),
-                    WeaponType::Canon {
-                        _angle: 0.0,
-                        _range: 0.0,
-                    },
-                )),
-                Some((
-                    Timer::from_seconds(3.0, TimerMode::Repeating),
-                    WeaponType::Canon {
-                        _angle: 0.0,
-                        _range: 0.0,
-                    },
-                )),
-                Some((
-                    Timer::from_seconds(3.0, TimerMode::Repeating),
-                    WeaponType::Canon {
-                        _angle: 0.0,
-                        _range: 0.0,
-                    },
-                )),
+                Some(WeaponType::default_cannon(&stats)),
+                Some(WeaponType::default_cannon(&stats)),
+                Some(WeaponType::default_cannon(&stats)),
             ],
-            front: Some((
-                Timer::from_seconds(3.0, TimerMode::Repeating),
-                WeaponType::Canon {
-                    _angle: 0.0,
-                    _range: 0.0,
-                },
-            )),
+            front: Some(WeaponType::default_cannon(&stats)),
             // front: None,
         },
+        stats,
     )
 }
 

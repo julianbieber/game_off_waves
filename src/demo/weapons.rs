@@ -5,28 +5,73 @@ use bevy::{
 };
 
 use crate::{
-    demo::{enemy::Enemy, forward_vec},
+    demo::{Health, enemy::Enemy, forward_vec, player::PlayerStats},
     screens::Screen,
 };
 
 pub struct WeaponPlugin;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 #[allow(dead_code)]
 pub enum WeaponType {
-    Canon { _angle: f32, _range: f32 },
+    Canon { cooldown: Timer, damage: f32 },
+}
+
+impl WeaponType {
+    pub fn default_cannon(player: &PlayerStats) -> WeaponType {
+        WeaponType::Canon {
+            cooldown: Timer::from_seconds(
+                3.0 * player.projectile_rate_percentage,
+                TimerMode::Repeating,
+            ),
+            damage: 30.0,
+        }
+    }
+
+    fn should_fire(&mut self, time: &Time) -> bool {
+        match self {
+            WeaponType::Canon { cooldown, .. } => {
+                cooldown.tick(time.delta());
+                cooldown.is_finished()
+            }
+        }
+    }
+    fn fire(
+        &self,
+        player: &PlayerStats,
+        transform: Transform,
+        meshes: &mut Assets<Mesh>,
+        materials: &mut Assets<WeaponMaterial>,
+    ) -> impl Bundle {
+        let mesh = meshes.add(Rectangle::new(30.0, 30.0));
+        let material = materials.add(WeaponMaterial { time: Vec4::ZERO });
+        match self {
+            WeaponType::Canon { damage, .. } => (
+                CanonBall {
+                    remaining: Timer::from_seconds(3.0, TimerMode::Once),
+                    speed: 500.0 * player.projectile_speed_percentage,
+                    damage: *damage * player.projectile_damage_percentage,
+                },
+                transform,
+                Mesh2d(mesh),
+                MeshMaterial2d(material),
+            ),
+        }
+    }
 }
 
 #[derive(Component)]
 pub struct CanonBall {
     pub remaining: Timer,
+    pub speed: f32,
+    pub damage: f32,
 }
 
 #[derive(Component)]
 pub struct WeaponSlots {
-    pub left: [Option<(Timer, WeaponType)>; 3],
-    pub right: [Option<(Timer, WeaponType)>; 3],
-    pub front: Option<(Timer, WeaponType)>,
+    pub left: [Option<WeaponType>; 3],
+    pub right: [Option<WeaponType>; 3],
+    pub front: Option<WeaponType>,
 }
 
 impl Plugin for WeaponPlugin {
@@ -48,24 +93,23 @@ impl Plugin for WeaponPlugin {
 
 fn eval_weapons(
     time: Res<Time>,
-    mut weapon_holders: Query<(&mut WeaponSlots, &Transform)>,
+    mut weapon_holders: Query<(&mut WeaponSlots, &Transform, &PlayerStats)>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<WeaponMaterial>>,
 ) {
-    for (mut weapon_holder, transform) in &mut weapon_holders {
+    for (mut weapon_holder, transform, player) in &mut weapon_holders {
         let angle = transform.rotation.to_euler(EulerRot::XYZ).2 + std::f32::consts::FRAC_PI_2;
         let forward = Vec2::new(angle.cos(), angle.sin());
 
         for (i, left_slot) in weapon_holder.left.iter_mut().enumerate() {
             if let Some(left_slot) = left_slot {
-                left_slot.0.tick(time.delta());
-                if left_slot.0.is_finished() {
+                if left_slot.should_fire(&time) {
                     let weapon_transform = left_weapon_transform(transform, forward, angle, i);
 
-                    commands.spawn(projectile(
+                    commands.spawn(left_slot.fire(
+                        player,
                         weapon_transform,
-                        Timer::from_seconds(3.0, TimerMode::Once),
                         &mut meshes,
                         &mut materials,
                     ));
@@ -74,12 +118,11 @@ fn eval_weapons(
         }
         for (i, right_slot) in weapon_holder.right.iter_mut().enumerate() {
             if let Some(right_slot) = right_slot {
-                right_slot.0.tick(time.delta());
-                if right_slot.0.is_finished() {
+                if right_slot.should_fire(&time) {
                     let weapon_transform = right_weapon_transform(transform, forward, angle, i);
-                    commands.spawn(projectile(
+                    commands.spawn(right_slot.fire(
+                        player,
                         weapon_transform,
-                        Timer::from_seconds(3.0, TimerMode::Once),
                         &mut meshes,
                         &mut materials,
                     ));
@@ -88,23 +131,18 @@ fn eval_weapons(
         }
 
         if let Some(front) = &mut weapon_holder.front {
-            front.0.tick(time.delta());
-            if front.0.is_finished() {
+            if front.should_fire(&time) {
                 let weapon_position = transform.translation.xy() + forward * 100.0;
-                commands.spawn(projectile(
-                    Transform::from_translation(Vec3::new(
-                        weapon_position.x,
-                        weapon_position.y,
-                        0.0,
-                    ))
-                    .with_rotation(Quat::from_axis_angle(
-                        Vec3::Z,
-                        angle - std::f32::consts::FRAC_PI_2,
-                    )),
-                    Timer::from_seconds(3.0, TimerMode::Once),
-                    &mut meshes,
-                    &mut materials,
+                let weapon_transform = Transform::from_translation(Vec3::new(
+                    weapon_position.x,
+                    weapon_position.y,
+                    0.0,
+                ))
+                .with_rotation(Quat::from_axis_angle(
+                    Vec3::Z,
+                    angle - std::f32::consts::FRAC_PI_2,
                 ));
+                commands.spawn(front.fire(player, weapon_transform, &mut meshes, &mut materials));
             }
         }
     }
@@ -149,25 +187,9 @@ fn right_weapon_transform(
         .with_rotation(Quat::from_axis_angle(Vec3::Z, forward_angle))
 }
 
-fn projectile(
-    transform: Transform,
-    remaining: Timer,
-    meshes: &mut Assets<Mesh>,
-    materials: &mut Assets<WeaponMaterial>,
-) -> impl Bundle {
-    let mesh = meshes.add(Rectangle::new(30.0, 30.0));
-    let material = materials.add(WeaponMaterial { time: Vec4::ZERO });
-    (
-        CanonBall { remaining },
-        transform,
-        Mesh2d(mesh),
-        MeshMaterial2d(material),
-    )
-}
-
-fn cannonball_flight(mut balls: Query<&mut Transform, With<CanonBall>>, time: Res<Time>) {
-    for mut ball in &mut balls {
-        let forward = forward_vec(*ball) * 300.0 * time.delta_secs();
+fn cannonball_flight(mut balls: Query<(&mut Transform, &CanonBall)>, time: Res<Time>) {
+    for (mut ball, stats) in &mut balls {
+        let forward = forward_vec(*ball) * stats.speed * time.delta_secs();
         ball.translation += Vec3::new(forward.x, forward.y, 0.0);
     }
 }
@@ -185,15 +207,23 @@ fn cannonball_despawn(
 }
 
 fn cannon_ball_hit(
-    balls: Query<(Entity, &Transform), (With<CanonBall>, Without<Enemy>)>,
-    enemies: Query<(Entity, &Transform), (With<Enemy>, Without<CanonBall>)>,
+    balls: Query<(Entity, &Transform, &CanonBall), Without<Enemy>>,
+    mut enemies: Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<CanonBall>)>,
     mut commands: Commands,
 ) {
     for ball in balls {
-        for enemy in enemies {
-            if ball.1.translation.distance_squared(enemy.1.translation) < 1000.0 {
+        for (enemy, enemy_transform, mut enemy_health) in &mut enemies {
+            if ball
+                .1
+                .translation
+                .distance_squared(enemy_transform.translation)
+                < 1000.0
+            {
                 commands.entity(ball.0).despawn();
-                commands.entity(enemy.0).despawn();
+                enemy_health.0 -= ball.2.damage as i32;
+                if enemy_health.0 <= 0 {
+                    commands.entity(enemy).despawn();
+                }
             }
         }
     }

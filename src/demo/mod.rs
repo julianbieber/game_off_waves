@@ -21,6 +21,9 @@ pub enum GameCollisionLayer {
     Enemy,
 }
 
+#[derive(Component)]
+pub struct Health(i32);
+
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins((
         level::plugin,

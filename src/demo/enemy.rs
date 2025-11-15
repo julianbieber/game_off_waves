@@ -7,7 +7,7 @@ use bevy::{
 };
 
 use crate::{
-    demo::{GameCollisionLayer, movement::MovementController, player::Player},
+    demo::{GameCollisionLayer, Health, movement::MovementController, player::Player},
     screens::Screen,
 };
 
@@ -125,6 +125,7 @@ fn eval_spawners(
                         timer: Timer::from_seconds(10.0, TimerMode::Repeating),
                         position: transform.translation,
                     },
+                    Health(100),
                 ));
                 config.remaining_in_wave -= 1;
             }
