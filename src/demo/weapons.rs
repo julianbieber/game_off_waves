@@ -52,37 +52,15 @@ fn eval_weapons(
     for (mut weapon_holder, transform) in &mut weapon_holders {
         let angle = transform.rotation.to_euler(EulerRot::XYZ).2 + std::f32::consts::FRAC_PI_2;
         let forward = Vec2::new(angle.cos(), angle.sin());
-        let left = Vec2::new(
-            (angle - std::f32::consts::FRAC_PI_2).cos(),
-            (angle - std::f32::consts::FRAC_PI_2).sin(),
-        );
-        let right = Vec2::new(
-            (angle + std::f32::consts::FRAC_PI_2).cos(),
-            (angle + std::f32::consts::FRAC_PI_2).sin(),
-        );
-
-        let side_offset = 30.0;
-        let between_side = 30.0;
 
         for (i, left_slot) in weapon_holder.left.iter_mut().enumerate() {
             if let Some(left_slot) = left_slot {
                 left_slot.0.tick(time.delta());
                 if left_slot.0.is_finished() {
-                    let i = i as f32 - 1.0;
-                    let weapon_position = transform.translation.xy()
-                        + left * side_offset
-                        + i * forward * between_side;
+                    let weapon_transform = left_weapon_transform(transform, forward, angle, i);
 
                     commands.spawn(projectile(
-                        Transform::from_translation(Vec3::new(
-                            weapon_position.x,
-                            weapon_position.y,
-                            0.0,
-                        ))
-                        .with_rotation(Quat::from_axis_angle(
-                            Vec3::Z,
-                            angle + std::f32::consts::PI,
-                        )),
+                        weapon_transform,
                         Timer::from_seconds(3.0, TimerMode::Once),
                         &mut meshes,
                         &mut materials,
@@ -94,17 +72,9 @@ fn eval_weapons(
             if let Some(right_slot) = right_slot {
                 right_slot.0.tick(time.delta());
                 if right_slot.0.is_finished() {
-                    let i = i as f32 - 1.0;
-                    let weapon_position = transform.translation.xy()
-                        + right * side_offset
-                        + i * forward * between_side;
+                    let weapon_transform = right_weapon_transform(transform, forward, angle, i);
                     commands.spawn(projectile(
-                        Transform::from_translation(Vec3::new(
-                            weapon_position.x,
-                            weapon_position.y,
-                            0.0,
-                        ))
-                        .with_rotation(Quat::from_axis_angle(Vec3::Z, angle)),
+                        weapon_transform,
                         Timer::from_seconds(3.0, TimerMode::Once),
                         &mut meshes,
                         &mut materials,
@@ -134,6 +104,45 @@ fn eval_weapons(
             }
         }
     }
+}
+
+const SIDE_OFFSET: f32 = 30.0;
+const BETWEEN_SIDE: f32 = 30.0;
+fn left_weapon_transform(
+    transform: &Transform,
+    forward: Vec2,
+    forward_angle: f32,
+    i: usize,
+) -> Transform {
+    let i = i as f32 - 1.0;
+
+    let left = Vec2::new(
+        (forward_angle - std::f32::consts::FRAC_PI_2).cos(),
+        (forward_angle - std::f32::consts::FRAC_PI_2).sin(),
+    );
+    let weapon_position =
+        transform.translation.xy() + left * SIDE_OFFSET + i * forward * BETWEEN_SIDE;
+    Transform::from_translation(Vec3::new(weapon_position.x, weapon_position.y, 0.0)).with_rotation(
+        Quat::from_axis_angle(Vec3::Z, forward_angle + std::f32::consts::PI),
+    )
+}
+
+fn right_weapon_transform(
+    transform: &Transform,
+    forward: Vec2,
+    forward_angle: f32,
+    i: usize,
+) -> Transform {
+    let i = i as f32 - 1.0;
+
+    let right = Vec2::new(
+        (forward_angle + std::f32::consts::FRAC_PI_2).cos(),
+        (forward_angle + std::f32::consts::FRAC_PI_2).sin(),
+    );
+    let weapon_position =
+        transform.translation.xy() + right * SIDE_OFFSET + i * forward * BETWEEN_SIDE;
+    Transform::from_translation(Vec3::new(weapon_position.x, weapon_position.y, 0.0))
+        .with_rotation(Quat::from_axis_angle(Vec3::Z, forward_angle))
 }
 
 fn projectile(
