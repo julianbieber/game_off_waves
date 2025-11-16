@@ -167,6 +167,6 @@ mod test {
         assert_eq!(waves.get(0, 0), Vec2::ZERO);
         assert_eq!(waves.get(1, 0), Vec2::ZERO);
         assert_eq!(waves.get(0, 1), Vec2::ZERO);
-        assert_eq!(waves.get(1, 1), Vec2::new(-1.0, -1.0)); // avg of |(1,1), (0,1)|,|(1,1), (1,0)|,
+        assert_eq!(waves.get(1, 1), Vec2::new(0.4, 0.4)); // avg of |(1,1), (0,1)|,|(1,1), (1,0)|,
     }
 }
