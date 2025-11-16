@@ -264,7 +264,7 @@ fn right_weapon_transform(
 
 fn cannonball_flight(mut balls: Query<(&mut Transform, &CanonBall)>, time: Res<Time>) {
     for (mut ball, stats) in &mut balls {
-        let forward = forward_vec(*ball) * stats.speed * time.delta_secs();
+        let forward = forward_vec(&ball) * stats.speed * time.delta_secs();
         ball.translation += Vec3::new(forward.x, forward.y, 0.0);
     }
 }
@@ -307,10 +307,8 @@ fn flamestrike_hits(
     flamestrikes: Query<(&Transform, &FlameStrike)>,
     mut enemies: Query<(&Transform, &mut Health), With<Enemy>>,
 ) -> std::result::Result<(), BevyError> {
-    dbg!("eval flame");
     let (flame_transform, flame) = flamestrikes.get(trigger.entity)?;
-    dbg!("found flame");
-    let r = dbg!(flame.radius) * flame.radius;
+    let r = flame.radius * flame.radius;
     for (enemy_t, mut enemy) in &mut enemies {
         if enemy_t
             .translation

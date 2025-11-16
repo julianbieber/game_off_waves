@@ -35,12 +35,12 @@ pub(super) fn plugin(app: &mut App) {
     ));
 }
 
-pub fn forward_vec(transform: Transform) -> Vec2 {
-    let angle = transform.rotation.to_euler(EulerRot::XYZ).2;
+pub fn forward_vec(transform: &Transform) -> Vec2 {
+    let angle = transform.rotation.to_euler(EulerRot::XYZ).2 + std::f32::consts::FRAC_PI_2;
     Vec2::new(angle.cos(), angle.sin())
 }
 
-pub fn angle_between(base: Transform, point: Vec2) -> f32 {
+pub fn angle_between(_base: Transform, _point: Vec2) -> f32 {
     0.0
 }
 
@@ -70,13 +70,21 @@ mod test {
     #[test]
     fn forward_test() {
         let towards_top = Transform::IDENTITY;
-        assert_eq!(forward_vec(towards_top), Vec2::X);
+        vec_eq(forward_vec(&towards_top), Vec2::Y);
         let towards_right =
+            Transform::IDENTITY.with_rotation(Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2));
+        vec_eq(forward_vec(&towards_right), Vec2::X);
+        let towards_left =
             Transform::IDENTITY.with_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2));
-        vec_eq(forward_vec(towards_right), Vec2::Y);
+        vec_eq(forward_vec(&towards_left), -Vec2::X);
+        let towards_down =
+            Transform::IDENTITY.with_rotation(Quat::from_rotation_z(-std::f32::consts::PI));
+        vec_eq(forward_vec(&towards_down), -Vec2::Y);
     }
 
+    #[allow(unused)]
     fn vec_eq(a: Vec2, b: Vec2) {
+        dbg!(a, b);
         assert!(a.distance(b) < 0.01);
     }
 }

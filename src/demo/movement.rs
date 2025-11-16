@@ -20,7 +20,7 @@ use bevy::prelude::*;
 
 use crate::{
     AppSystems, PausableSystems,
-    demo::{player::Player, terrain::waves::Waves},
+    demo::{forward_vec, player::Player, terrain::waves::Waves},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -63,8 +63,7 @@ fn apply_movement(
 ) {
     for (controller, transform, mut forces) in &mut movement_query {
         forces.apply_angular_impulse(controller.rotation_intent * 600.0);
-        let angle = transform.rotation.to_euler(EulerRot::XYZ).2 + f32::consts::FRAC_PI_2;
-        let forward = Vec2::new(angle.cos(), angle.sin());
+        let forward = forward_vec(transform);
 
         let new_force = forward * controller.intent * 300.0; //* time.delta_secs();
 
@@ -99,8 +98,7 @@ fn rotate_forward(
     mut velocities: Query<(&Transform, Forces), (With<MovementController>, With<Player>)>,
 ) {
     for (transform, mut forces) in &mut velocities {
-        let angle = transform.rotation.to_euler(EulerRot::XYZ).2 + f32::consts::FRAC_PI_2;
-        let forward = Vec2::new(angle.cos(), angle.sin());
+        let forward = forward_vec(transform);
         let backward = -forward;
         let velo_to_forward = forces.linear_velocity().normalize().dot(forward);
         let velo_to_backward = forces.linear_velocity().normalize().dot(backward);
