@@ -4,7 +4,7 @@
 //! to get a feeling for the template.
 
 use avian2d::prelude::PhysicsLayer;
-use bevy::prelude::*;
+use bevy::{math::ops::atan2, prelude::*};
 
 pub mod enemy;
 pub mod level;
@@ -40,8 +40,12 @@ pub fn forward_vec(transform: &Transform) -> Vec2 {
     Vec2::new(angle.cos(), angle.sin())
 }
 
-pub fn angle_between(_base: Transform, _point: Vec2) -> f32 {
-    0.0
+/// should return the value with lower abs
+pub fn angle_between(base: &Transform, point: Vec2) -> f32 {
+    let b = point;
+    let a = forward_vec(base);
+
+    atan2(a.x * b.y - a.y * b.x, a.x * b.x + a.y * b.y)
 }
 
 mod test {
@@ -61,10 +65,24 @@ mod test {
         let base_pointing_y = Transform::IDENTITY;
 
         let base_pointing_x =
-            Transform::IDENTITY.with_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2));
+            Transform::IDENTITY.with_rotation(Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2));
 
-        assert_eq!(angle_between(base_pointing_y, Vec2::Y), 0.0);
-        assert_eq!(angle_between(base_pointing_x, Vec2::X), 0.0);
+        eq(angle_between(&base_pointing_y, Vec2::Y), 0.0);
+        eq(
+            angle_between(&base_pointing_y, Vec2::X),
+            -std::f32::consts::FRAC_PI_2,
+        );
+        eq(angle_between(&base_pointing_x, Vec2::X), 0.0);
+        eq(
+            angle_between(&base_pointing_x, Vec2::Y),
+            std::f32::consts::FRAC_PI_2,
+        );
+    }
+
+    #[allow(unused)]
+    fn eq(a: f32, b: f32) {
+        dbg!(a, b);
+        assert!((a - b).abs() < 0.001);
     }
 
     #[test]
