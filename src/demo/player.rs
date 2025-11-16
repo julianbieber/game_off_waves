@@ -22,7 +22,7 @@ pub struct PlayerStats {
     pub projectile_damage_percentage: f32,
     pub projectile_speed_percentage: f32,
     pub projectile_rate_percentage: f32,
-    pub _explosion_damage_percentage: f32,
+    pub explosion_damage_percentage: f32,
 }
 impl Default for PlayerStats {
     fn default() -> Self {
@@ -30,7 +30,7 @@ impl Default for PlayerStats {
             projectile_damage_percentage: 1.0,
             projectile_speed_percentage: 1.0,
             projectile_rate_percentage: 1.0,
-            _explosion_damage_percentage: 1.0,
+            explosion_damage_percentage: 1.0,
         }
     }
 }
@@ -93,7 +93,7 @@ pub fn player(
                 Some(WeaponType::default_cannon(&stats)),
                 Some(WeaponType::default_cannon(&stats)),
             ],
-            front: Some(WeaponType::default_cannon(&stats)),
+            front: Some(WeaponType::default_fire_mage(&stats)),
             // front: None,
         },
         stats,

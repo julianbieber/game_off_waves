@@ -43,21 +43,19 @@ fn pie(p: vec2<f32>, c: vec2<f32>, r: f32) -> f32 {
     var localp = p;
     localp.x = abs(localp.x);
     let l = length(p) - r;
-    let m = length(localp - c*clamp(dot(localp, c), 0.0, r));
-    return max(l, m*sign(c.y*localp.x- c.x*localp.y));
+    let m = length(localp - c * clamp(dot(localp, c), 0.0, r));
+    return max(l, m * sign(c.y * localp.x - c.x * localp.y));
 }
 
 fn sail_d(p: vec2<f32>) -> f32 {
-    return pie(p*vec2(1.0, 4.4), vec2(-1.0, 0.5), 1.6);
+    return pie(p * vec2(1.0, 4.4), vec2(-1.0, 0.5), 1.6);
 }
 
-@fragment
-fn fragment(
-    mesh: VertexOutput,
-) -> @location(0) vec4<f32> {
-    let iron= rgb(52,52,50);
-
-    let p = mesh.uv*10.0 -vec2<f32>(5.0, 5.0);
+fn cannon_ball(
+    mesh: VertexOutput
+) -> vec4<f32> {
+    let iron = rgb(52, 52, 50);
+    let p = mesh.uv * 10.0 - vec2<f32>(5.0, 5.0);
 
     var color: vec4<f32>;
 
@@ -66,8 +64,32 @@ fn fragment(
     } else {
         color = vec4(0.0);
     }
-
-
-
     return color;
+}
+
+fn flame_strike(
+    mesh: VertexOutput
+) -> vec4<f32> {
+    let iron = rgb(252, 52, 50);
+    let p = mesh.uv * 10.0 - vec2<f32>(5.0, 5.0);
+
+    var color: vec4<f32>;
+
+    if length(p) < 3.0 {
+        color = vec4(iron, 1.0);
+    } else {
+        color = vec4(0.0);
+    }
+    return color;
+}
+
+@fragment
+fn fragment(
+    mesh: VertexOutput,
+) -> @location(0) vec4<f32> {
+    if material.time.y == 1.0 {
+        return flame_strike(mesh);
+    } else {
+        return cannon_ball(mesh);
+    }
 }

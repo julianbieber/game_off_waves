@@ -21,12 +21,26 @@ impl Plugin for EnemyPlugin {
         .add_systems(Update, update_time.run_if(in_state(Screen::Gameplay)))
         .add_systems(
             Update,
-            (eval_spawners, remove_stuck_enemies, enemy_movement)
+            (
+                eval_spawners,
+                remove_stuck_enemies,
+                enemy_movement,
+                despawn_dead,
+            )
                 .run_if(in_state(Screen::Gameplay)),
         )
         .add_plugins(Material2dPlugin::<EnemyMaterial>::default());
     }
 }
+
+fn despawn_dead(enemies: Query<(Entity, &Health)>, mut commands: Commands) {
+    for (e, h) in enemies {
+        if h.0 < 0 {
+            commands.entity(e).despawn();
+        }
+    }
+}
+
 fn update_time(
     time: Res<Time>,
     mut materials: ResMut<Assets<EnemyMaterial>>,
