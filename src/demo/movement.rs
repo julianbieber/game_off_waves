@@ -62,7 +62,7 @@ fn apply_movement(
     mut movement_query: Query<(&MovementController, &Transform, Forces)>,
 ) {
     for (controller, transform, mut forces) in &mut movement_query {
-        forces.apply_angular_impulse(controller.rotation_intent * 600.0);
+        forces.apply_angular_impulse(controller.rotation_intent * 60000.0);
         let forward = forward_vec(transform);
 
         let new_force = forward * controller.intent * 300.0; //* time.delta_secs();

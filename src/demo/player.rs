@@ -64,8 +64,10 @@ pub fn player(
         GameCollisionLayer::Player,
         [GameCollisionLayer::Terrain, GameCollisionLayer::Enemy],
     );
-    let mut stats = PlayerStats::default();
-    stats.projectile_rate_percentage = 0.2;
+    let stats = PlayerStats {
+        projectile_rate_percentage: 0.2,
+        ..Default::default()
+    };
     (
         Name::new("Player"),
         Player,
@@ -78,7 +80,7 @@ pub fn player(
         },
         RigidBody::Dynamic,
         Mass(10.0),
-        AngularDamping(2.0),
+        AngularDamping(200.0),
         LinearDamping(0.2),
         Collider::rectangle(100.0, 200.0),
         collision,
