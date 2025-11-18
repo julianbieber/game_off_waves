@@ -86,9 +86,9 @@ pub fn player(
         collision,
         WeaponSlots {
             left: [
-                Some(WeaponType::default_cannon(&stats)),
-                Some(WeaponType::default_cannon(&stats)),
-                Some(WeaponType::default_cannon(&stats)),
+                Some(WeaponType::default_archer(&stats)),
+                Some(WeaponType::default_archer(&stats)),
+                Some(WeaponType::default_archer(&stats)),
             ],
             right: [
                 Some(WeaponType::default_cannon(&stats)),

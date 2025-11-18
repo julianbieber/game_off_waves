@@ -5,7 +5,7 @@ use bevy::{
 };
 
 use crate::{
-    demo::{Health, enemy::Enemy, forward_vec, player::PlayerStats},
+    demo::{Health, angle_between, enemy::Enemy, forward_vec, player::PlayerStats},
     screens::Screen,
 };
 
@@ -24,6 +24,12 @@ pub enum WeaponType {
         burning_stacks: i32,
         radius: f32,
         range: f32,
+    },
+    Archer {
+        cooldown: Timer,
+        damage: f32,
+        range: f32,
+        angle: f32,
     },
 }
 
@@ -48,6 +54,17 @@ impl WeaponType {
             burning_stacks: 0,
             radius: 300.0,
             range: 200.0,
+        }
+    }
+    pub fn default_archer(player: &PlayerStats) -> WeaponType {
+        WeaponType::Archer {
+            cooldown: Timer::from_seconds(
+                0.1 * player.projectile_rate_percentage,
+                TimerMode::Repeating,
+            ),
+            damage: 10.0,
+            range: 1000.0,
+            angle: std::f32::consts::FRAC_PI_2,
         }
     }
 
@@ -115,6 +132,56 @@ impl WeaponType {
                     }
                 }
             }
+            WeaponType::Archer {
+                cooldown, damage, ..
+            } => {
+                cooldown.tick(time.delta());
+                if cooldown.is_finished() {
+                    // let radius_sq = *range * *range;
+                    //     if let Some(target) = enemies.iter().find(|e| {
+                    //         let angle_to_enemy = angle_between(&user_transform, e.translation.xy());
+                    //         user_transform.translation.distance_squared(e.translation) < radius_sq
+                    //             && angle_to_enemy.abs() < *angle
+                    //     }) {
+                    //         let mesh = meshes.add(Rectangle::new(30.0, 30.0));
+                    //         let material = materials.add(WeaponMaterial {
+                    //             time: Vec4::new(0.0, 2.0, 0.0, 0.0),
+                    //         });
+                    //         let b = (
+                    //             Arrow {
+                    //                 speed: 1000.0 * player.projectile_speed_percentage,
+                    //                 damage: *damage * player.projectile_damage_percentage,
+                    //             },
+                    //             user_transform.looking_at(target.translation, Vec3::Z),
+                    //             Mesh2d(mesh),
+                    //             MeshMaterial2d(material),
+                    //             DespawnAfter(Timer::from_seconds(3.0, TimerMode::Once)),
+                    //         );
+                    //         commands.spawn(b);
+                    //     }
+                    // }
+                    if let Some(target) = Some(Transform::IDENTITY) {
+                        let mesh = meshes.add(Rectangle::new(30.0, 30.0));
+                        let material = materials.add(WeaponMaterial {
+                            time: Vec4::new(0.0, 2.0, 0.0, 0.0),
+                        });
+                        let b = (
+                            Arrow {
+                                speed: 100.0 * player.projectile_speed_percentage,
+                                damage: *damage * player.projectile_damage_percentage,
+                            },
+                            user_transform.with_rotation(Quat::from_rotation_z(angle_between(
+                                &user_transform,
+                                point,
+                            ))),
+                            Mesh2d(mesh),
+                            MeshMaterial2d(material),
+                            DespawnAfter(Timer::from_seconds(3.0, TimerMode::Once)),
+                        );
+                        commands.spawn(b);
+                    }
+                }
+            }
         }
     }
 }
@@ -133,6 +200,12 @@ pub struct FlameStrike {
 }
 
 #[derive(Component)]
+pub struct Arrow {
+    pub damage: f32,
+    pub speed: f32,
+}
+
+#[derive(Component)]
 pub struct DespawnAfter(Timer);
 
 #[derive(Component)]
@@ -148,10 +221,12 @@ impl Plugin for WeaponPlugin {
             Update,
             (
                 cannonball_flight,
+                arrow_flight,
                 update_time,
                 eval_weapons,
                 despawn_after_x,
                 cannon_ball_hit,
+                arrow_hit,
             )
                 .run_if(in_state(Screen::Gameplay)),
         )
@@ -269,6 +344,13 @@ fn cannonball_flight(mut balls: Query<(&mut Transform, &CanonBall)>, time: Res<T
     }
 }
 
+fn arrow_flight(mut balls: Query<(&mut Transform, &Arrow)>, time: Res<Time>) {
+    for (mut ball, stats) in &mut balls {
+        let forward = forward_vec(&ball) * stats.speed * time.delta_secs();
+        ball.translation += Vec3::new(forward.x, forward.y, 0.0);
+    }
+}
+
 fn despawn_after_x(
     time: Res<Time>,
     mut balls: Query<(Entity, &mut DespawnAfter)>,
@@ -285,6 +367,26 @@ fn despawn_after_x(
 fn cannon_ball_hit(
     balls: Query<(Entity, &Transform, &CanonBall), Without<Enemy>>,
     mut enemies: Query<(&Transform, &mut Health), (With<Enemy>, Without<CanonBall>)>,
+    mut commands: Commands,
+) {
+    for ball in balls {
+        for (enemy_transform, mut enemy_health) in &mut enemies {
+            if ball
+                .1
+                .translation
+                .distance_squared(enemy_transform.translation)
+                < 1000.0
+            {
+                commands.entity(ball.0).despawn();
+                enemy_health.0 -= ball.2.damage as i32;
+            }
+        }
+    }
+}
+
+fn arrow_hit(
+    balls: Query<(Entity, &Transform, &Arrow), Without<Enemy>>,
+    mut enemies: Query<(&Transform, &mut Health), (With<Enemy>, Without<Arrow>)>,
     mut commands: Commands,
 ) {
     for ball in balls {
