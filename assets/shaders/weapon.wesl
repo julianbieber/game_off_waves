@@ -83,12 +83,20 @@ fn flame_strike(
     return color;
 }
 
+fn arrow(
+    mesh: VertexOutput
+) -> vec4<f32> {
+    return vec4(1.0);
+}
+
 @fragment
 fn fragment(
     mesh: VertexOutput,
 ) -> @location(0) vec4<f32> {
     if material.time.y == 1.0 {
         return flame_strike(mesh);
+    } else if material.time.y == 1.0 {
+        return arrow(mesh);
     } else {
         return cannon_ball(mesh);
     }

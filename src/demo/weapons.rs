@@ -133,46 +133,33 @@ impl WeaponType {
                 }
             }
             WeaponType::Archer {
-                cooldown, damage, ..
+                cooldown,
+                damage,
+                range,
+                angle,
             } => {
                 cooldown.tick(time.delta());
                 if cooldown.is_finished() {
-                    // let radius_sq = *range * *range;
-                    //     if let Some(target) = enemies.iter().find(|e| {
-                    //         let angle_to_enemy = angle_between(&user_transform, e.translation.xy());
-                    //         user_transform.translation.distance_squared(e.translation) < radius_sq
-                    //             && angle_to_enemy.abs() < *angle
-                    //     }) {
-                    //         let mesh = meshes.add(Rectangle::new(30.0, 30.0));
-                    //         let material = materials.add(WeaponMaterial {
-                    //             time: Vec4::new(0.0, 2.0, 0.0, 0.0),
-                    //         });
-                    //         let b = (
-                    //             Arrow {
-                    //                 speed: 1000.0 * player.projectile_speed_percentage,
-                    //                 damage: *damage * player.projectile_damage_percentage,
-                    //             },
-                    //             user_transform.looking_at(target.translation, Vec3::Z),
-                    //             Mesh2d(mesh),
-                    //             MeshMaterial2d(material),
-                    //             DespawnAfter(Timer::from_seconds(3.0, TimerMode::Once)),
-                    //         );
-                    //         commands.spawn(b);
-                    //     }
-                    // }
-                    if let Some(target) = Some(Transform::IDENTITY) {
+                    let radius_sq = *range * *range;
+                    if let Some(target) = enemies.iter().find(|e| {
+                        let angle_to_enemy = angle_between(&user_transform, e.translation.xy());
+                        user_transform.translation.distance_squared(e.translation) < radius_sq
+                            && angle_to_enemy.abs() < *angle
+                    }) {
                         let mesh = meshes.add(Rectangle::new(30.0, 30.0));
                         let material = materials.add(WeaponMaterial {
                             time: Vec4::new(0.0, 2.0, 0.0, 0.0),
                         });
                         let b = (
                             Arrow {
-                                speed: 100.0 * player.projectile_speed_percentage,
+                                speed: 1000.0 * player.projectile_speed_percentage,
                                 damage: *damage * player.projectile_damage_percentage,
                             },
                             user_transform.with_rotation(Quat::from_rotation_z(angle_between(
-                                &user_transform,
-                                point,
+                                &user_transform.with_rotation(Quat::from_rotation_z(
+                                    std::f32::consts::FRAC_PI_2,
+                                )),
+                                target.translation.xy(),
                             ))),
                             Mesh2d(mesh),
                             MeshMaterial2d(material),
@@ -180,6 +167,27 @@ impl WeaponType {
                         );
                         commands.spawn(b);
                     }
+                    // }
+                    // if let Some(target) = Some(Transform::IDENTITY) {
+                    //     let mesh = meshes.add(Rectangle::new(30.0, 30.0));
+                    //     let material = materials.add(WeaponMaterial {
+                    //         time: Vec4::new(0.0, 2.0, 0.0, 0.0),
+                    //     });
+                    //     let b = (
+                    //         Arrow {
+                    //             speed: 100.0 * player.projectile_speed_percentage,
+                    //             damage: *damage * player.projectile_damage_percentage,
+                    //         },
+                    //         user_transform.with_rotation(Quat::from_rotation_z(angle_between(
+                    //             &user_transform.with_rotation(Quat::IDENTITY),
+                    //             target.translation.xy(),
+                    //         ))),
+                    //         Mesh2d(mesh),
+                    //         MeshMaterial2d(material),
+                    //         DespawnAfter(Timer::from_seconds(3.0, TimerMode::Once)),
+                    //     );
+                    //     commands.spawn(b);
+                    // }
                 }
             }
         }
