@@ -59,11 +59,11 @@ impl WeaponType {
     pub fn default_archer(player: &PlayerStats) -> WeaponType {
         WeaponType::Archer {
             cooldown: Timer::from_seconds(
-                0.1 * player.projectile_rate_percentage,
+                1.0 * player.projectile_rate_percentage,
                 TimerMode::Repeating,
             ),
             damage: 10.0,
-            range: 1000.0,
+            range: 400.0,
             angle: std::f32::consts::FRAC_PI_2,
         }
     }
@@ -152,20 +152,30 @@ impl WeaponType {
                         });
                         let b = (
                             Arrow {
-                                speed: 1000.0 * player.projectile_speed_percentage,
+                                speed: 300.0 * player.projectile_speed_percentage,
                                 damage: *damage * player.projectile_damage_percentage,
                             },
-                            user_transform.with_rotation(Quat::from_rotation_z(angle_between(
-                                &user_transform.with_rotation(Quat::from_rotation_z(
-                                    std::f32::consts::FRAC_PI_2,
-                                )),
-                                target.translation.xy(),
-                            ))),
+                            user_transform.with_rotation(Quat::from_rotation_z(
+                                angle_between(
+                                    &user_transform.with_rotation(Quat::from_rotation_z(
+                                        -std::f32::consts::FRAC_PI_2,
+                                    )),
+                                    target.translation.xy(),
+                                ) + 2.0 * std::f32::consts::FRAC_PI_2,
+                            )),
                             Mesh2d(mesh),
                             MeshMaterial2d(material),
                             DespawnAfter(Timer::from_seconds(3.0, TimerMode::Once)),
                         );
                         commands.spawn(b);
+                        commands.spawn((
+                            target.clone(),
+                            Mesh2d(meshes.add(Rectangle::new(30.0, 30.0))),
+                            MeshMaterial2d(materials.add(WeaponMaterial {
+                                time: Vec4::new(0.0, 2.0, 0.0, 0.0),
+                            })),
+                            DespawnAfter(Timer::from_seconds(1.0, TimerMode::Once)),
+                        ));
                     }
                     // }
                     // if let Some(target) = Some(Transform::IDENTITY) {
