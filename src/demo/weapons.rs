@@ -150,19 +150,16 @@ impl WeaponType {
                         let material = materials.add(WeaponMaterial {
                             time: Vec4::new(0.0, 2.0, 0.0, 0.0),
                         });
+                        let targetting_transform = point_at(
+                            &user_transform.with_rotation(Quat::IDENTITY),
+                            target.translation,
+                        );
                         let b = (
                             Arrow {
                                 speed: 300.0 * player.projectile_speed_percentage,
                                 damage: *damage * player.projectile_damage_percentage,
                             },
-                            user_transform.with_rotation(Quat::from_rotation_z(
-                                angle_between(
-                                    &user_transform.with_rotation(Quat::from_rotation_z(
-                                        -std::f32::consts::FRAC_PI_2,
-                                    )),
-                                    target.translation.xy(),
-                                ) + 2.0 * std::f32::consts::FRAC_PI_2,
-                            )),
+                            targetting_transform,
                             Mesh2d(mesh),
                             MeshMaterial2d(material),
                             DespawnAfter(Timer::from_seconds(3.0, TimerMode::Once)),
@@ -476,5 +473,34 @@ impl Material2d for WeaponMaterial {
 
     fn alpha_mode(&self) -> bevy::sprite_render::AlphaMode2d {
         bevy::sprite_render::AlphaMode2d::Blend
+    }
+}
+
+fn point_at(start: &Transform, target: Vec3) -> Transform {
+    let angle = angle_between(start, target.xy());
+    let targetting_transform = start.with_rotation(Quat::from_rotation_z(angle));
+    targetting_transform
+}
+
+#[cfg(test)]
+mod test {
+    use bevy::{math::Vec3, transform::components::Transform};
+
+    use crate::demo::{forward_vec, weapons::point_at};
+
+    #[test]
+    fn point_at_test() {
+        let start = Transform::from_translation(Vec3::new(1000.0, 0.0, 0.0));
+        let target = Vec3::new(-10.0, -10.0, 0.0);
+
+        let distance = start.translation.distance(target);
+
+        let p = point_at(&start, target);
+        let p_forward = dbg!(forward_vec(&p));
+        dbg!((p_forward * distance).length());
+
+        let reached = p.translation + Vec3::new(p_forward.x, p_forward.y, 0.0) * distance;
+
+        assert_eq!(reached, target);
     }
 }
