@@ -47,12 +47,12 @@ impl WeaponType {
     pub fn default_fire_mage(player: &PlayerStats) -> WeaponType {
         WeaponType::FireMage {
             cooldown: Timer::from_seconds(
-                0.1 * player.projectile_rate_percentage,
+                2.0 * player.projectile_rate_percentage,
                 TimerMode::Repeating,
             ),
             direct_damage: 10.0,
             burning_stacks: 0,
-            radius: 300.0,
+            radius: 50.0,
             range: 200.0,
         }
     }
@@ -166,27 +166,6 @@ impl WeaponType {
                         );
                         commands.spawn(b);
                     }
-                    // }
-                    // if let Some(target) = Some(Transform::IDENTITY) {
-                    //     let mesh = meshes.add(Rectangle::new(30.0, 30.0));
-                    //     let material = materials.add(WeaponMaterial {
-                    //         time: Vec4::new(0.0, 2.0, 0.0, 0.0),
-                    //     });
-                    //     let b = (
-                    //         Arrow {
-                    //             speed: 100.0 * player.projectile_speed_percentage,
-                    //             damage: *damage * player.projectile_damage_percentage,
-                    //         },
-                    //         user_transform.with_rotation(Quat::from_rotation_z(angle_between(
-                    //             &user_transform.with_rotation(Quat::IDENTITY),
-                    //             target.translation.xy(),
-                    //         ))),
-                    //         Mesh2d(mesh),
-                    //         MeshMaterial2d(material),
-                    //         DespawnAfter(Timer::from_seconds(3.0, TimerMode::Once)),
-                    //     );
-                    //     commands.spawn(b);
-                    // }
                 }
             }
         }
