@@ -42,7 +42,7 @@ pub fn forward_vec(transform: &Transform) -> Vec2 {
 
 /// should return the value with lower abs
 pub fn angle_between(base: &Transform, point: Vec2) -> f32 {
-    let b = point.normalize();
+    let b = (point - base.translation.xy()).normalize();
     let a = forward_vec(base);
 
     atan2(a.x * b.y - a.y * b.x, a.x * b.x + a.y * b.y)

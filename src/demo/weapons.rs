@@ -165,14 +165,6 @@ impl WeaponType {
                             DespawnAfter(Timer::from_seconds(3.0, TimerMode::Once)),
                         );
                         commands.spawn(b);
-                        commands.spawn((
-                            target.clone(),
-                            Mesh2d(meshes.add(Rectangle::new(30.0, 30.0))),
-                            MeshMaterial2d(materials.add(WeaponMaterial {
-                                time: Vec4::new(0.0, 2.0, 0.0, 0.0),
-                            })),
-                            DespawnAfter(Timer::from_seconds(1.0, TimerMode::Once)),
-                        ));
                     }
                     // }
                     // if let Some(target) = Some(Transform::IDENTITY) {
@@ -478,8 +470,7 @@ impl Material2d for WeaponMaterial {
 
 fn point_at(start: &Transform, target: Vec3) -> Transform {
     let angle = angle_between(start, target.xy());
-    let targetting_transform = start.with_rotation(Quat::from_rotation_z(angle));
-    targetting_transform
+    start.with_rotation(Quat::from_rotation_z(angle))
 }
 
 #[cfg(test)]
@@ -490,17 +481,21 @@ mod test {
 
     #[test]
     fn point_at_test() {
-        let start = Transform::from_translation(Vec3::new(1000.0, 0.0, 0.0));
-        let target = Vec3::new(-10.0, -10.0, 0.0);
+        let start = Transform::from_translation(Vec3::new(100.0, 0.0, 0.0));
+        let target = Vec3::new(-200.0, 2.0, 0.0);
 
         let distance = start.translation.distance(target);
 
         let p = point_at(&start, target);
-        let p_forward = dbg!(forward_vec(&p));
-        dbg!((p_forward * distance).length());
+        let p_forward = forward_vec(&p);
 
         let reached = p.translation + Vec3::new(p_forward.x, p_forward.y, 0.0) * distance;
 
-        assert_eq!(reached, target);
+        vec_eq(reached, target);
+    }
+    #[allow(unused)]
+    fn vec_eq(a: Vec3, b: Vec3) {
+        dbg!(a, b);
+        assert!(a.distance(b) < 0.01);
     }
 }
