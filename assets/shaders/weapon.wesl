@@ -92,6 +92,20 @@ fn dotnoise(p: vec3f) -> f32 {
     return dot(cos(p),sin(p.yzx));
 }
 
+fn billow(p: vec3f) -> f32 {
+    let lunacricy = 2.0;
+    let dampening = 0.5;
+    var a = 1.0;
+    var t = 0.0;
+    for (var i = 0; i < 3; i = i + 1) {
+        t += abs(a*dotnoise(f32(i) * lunacricy * p));
+        a *= dampening;
+
+    }
+
+    return t;
+}
+
 fn flame_strike(
     mesh: VertexOutput
 ) -> vec4<f32> {
@@ -100,8 +114,7 @@ fn flame_strike(
 
     var color: vec4<f32>;
 
-    color = vec4(orange*dotnoise(vec3(rot(mesh.world_position.xy, material.time.x * 0.1)*0.1, material.time.x)), 1.0);
-    color.a *= length(.1/p);
+    color = vec4(orange*dotnoise(vec3(rot(mesh.world_position.xy*0.5, material.time.x*0.2), material.time.x)), 1.0);
 
     if length(p)*0.4 > material.time.x {
         color.a = 0.0;
