@@ -447,7 +447,7 @@ fn update_time(
 ) {
     for (material, burning) in boats.iter() {
         if let Some(m) = materials.get_mut(material.0.id()) {
-            m.time.x += m.time.x + time.delta_secs();
+            m.time.x += time.delta_secs();
             if let Some(burning) = burning {
                 m.time.z = burning.stacks as f32;
             }
