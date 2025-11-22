@@ -12,7 +12,7 @@ use crate::{
     demo::{
         GameCollisionLayer, Health,
         movement::MovementController,
-        player::{Player, PlayerHealth},
+        player::{EnemiesKilled, Player, PlayerHealth},
     },
     screens::Screen,
 };
@@ -22,7 +22,7 @@ pub struct EnemyPlugin;
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(SpawnerConfig {
-            remaining_in_wave: 100,
+            remaining_in_wave: 10000,
         })
         .add_systems(Update, update_time.run_if(in_state(Screen::Gameplay)))
         .add_systems(
@@ -40,10 +40,15 @@ impl Plugin for EnemyPlugin {
     }
 }
 
-fn despawn_dead(enemies: Query<(Entity, &Health)>, mut commands: Commands) {
+fn despawn_dead(
+    enemies: Query<(Entity, &Health)>,
+    mut commands: Commands,
+    mut killed: ResMut<EnemiesKilled>,
+) {
     for (e, h) in enemies {
         if h.0 < 0 {
             commands.entity(e).despawn();
+            killed.amount += 1;
         }
     }
 }
@@ -236,6 +241,7 @@ fn enemies_hit_player(
         let mut player = player.get_mut(player_entity).unwrap();
         player.current -= 1;
 
+        dbg!(player.current);
         commands.entity(_enemy).despawn();
     }
 }

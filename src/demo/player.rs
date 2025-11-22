@@ -33,7 +33,7 @@ impl Default for PlayerStats {
             projectile_damage_percentage: 1.0,
             projectile_speed_percentage: 1.0,
             projectile_rate_percentage: 1.0,
-            explosion_damage_percentage: 1.0,
+            explosion_damage_percentage: 4.0,
         }
     }
 }
@@ -48,8 +48,10 @@ pub(super) fn plugin(app: &mut App) {
             follow_cam
                 .in_set(AppSystems::Update)
                 .in_set(PausableSystems),
+            player_died,
         ),
     )
+    .insert_resource(EnemiesKilled { amount: 0 })
     .add_systems(Update, update_time.run_if(in_state(Screen::Gameplay)))
     .add_plugins(Material2dPlugin::<BoatMaterial>::default());
 }
@@ -58,6 +60,11 @@ pub(super) fn plugin(app: &mut App) {
 pub struct PlayerHealth {
     pub _max: i32,
     pub current: i32,
+}
+
+#[derive(Resource)]
+pub struct EnemiesKilled {
+    pub amount: i32,
 }
 
 /// The player character.
@@ -116,6 +123,14 @@ pub fn player(
         stats,
         CollisionEventsEnabled,
     )
+}
+
+fn player_died(player: Query<&PlayerHealth>, mut next_screen: ResMut<NextState<Screen>>) {
+    for h in &player {
+        if h.current <= 0 {
+            next_screen.set(Screen::YouDied);
+        }
+    }
 }
 
 fn follow_cam(

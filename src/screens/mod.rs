@@ -1,11 +1,14 @@
 //! The game's main screen states and transitions between them.
 
+mod end;
 mod gameplay;
 mod loading;
 mod splash;
 mod title;
 
 use bevy::prelude::*;
+
+use crate::screens::end::EndPlugin;
 
 pub(super) fn plugin(app: &mut App) {
     app.init_state::<Screen>();
@@ -15,6 +18,7 @@ pub(super) fn plugin(app: &mut App) {
         loading::plugin,
         splash::plugin,
         title::plugin,
+        EndPlugin,
     ));
 }
 
@@ -26,4 +30,5 @@ pub enum Screen {
     Title,
     Loading,
     Gameplay,
+    YouDied,
 }
