@@ -1,4 +1,6 @@
-use avian2d::prelude::{AngularDamping, Collider, CollisionLayers, LinearDamping, Mass, RigidBody};
+use avian2d::prelude::{
+    AngularDamping, Collider, CollisionLayers, CollisionStart, LinearDamping, Mass, RigidBody,
+};
 use bevy::{
     math::ops::atan2,
     prelude::*,
@@ -7,7 +9,11 @@ use bevy::{
 };
 
 use crate::{
-    demo::{GameCollisionLayer, Health, movement::MovementController, player::Player},
+    demo::{
+        GameCollisionLayer, Health,
+        movement::MovementController,
+        player::{Player, PlayerHealth},
+    },
     screens::Screen,
 };
 
@@ -26,6 +32,7 @@ impl Plugin for EnemyPlugin {
                 remove_stuck_enemies,
                 enemy_movement,
                 despawn_dead,
+                enemies_hit_player,
             )
                 .run_if(in_state(Screen::Gameplay)),
         )
@@ -190,4 +197,45 @@ fn enemy_movement(
         }
     }
     Ok(())
+}
+
+fn enemies_hit_player(
+    mut collisions: MessageReader<CollisionStart>,
+    enemies: Query<Entity, (With<Enemy>, Without<Player>)>,
+    mut player: Query<&mut PlayerHealth, Without<Enemy>>,
+    mut commands: Commands,
+) {
+    for collision in collisions.read() {
+        let _enemy = {
+            if let Some(enemy) = [collision.body1, collision.body2]
+                .iter()
+                .flatten()
+                .find(|e| enemies.contains(**e))
+            {
+                *enemy
+            } else {
+                // No enemy part of the collision
+                break;
+            }
+        };
+
+        let player_entity = {
+            if let Some(player) = [collision.body1, collision.body2]
+                .iter()
+                .flatten()
+                .find(|e| player.contains(**e))
+            {
+                *player
+            } else {
+                // No player part of the collision
+                break;
+            }
+        };
+
+        // unwrap is safe due to the previous check
+        let mut player = player.get_mut(player_entity).unwrap();
+        player.current -= 1;
+
+        commands.entity(_enemy).despawn();
+    }
 }

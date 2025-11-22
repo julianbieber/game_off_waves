@@ -1,6 +1,9 @@
 //! Player-specific behavior.
 
-use avian2d::prelude::{AngularDamping, Collider, CollisionLayers, LinearDamping, Mass, RigidBody};
+use avian2d::prelude::{
+    AngularDamping, Collider, CollisionEventsEnabled, CollisionLayers, LinearDamping, Mass,
+    RigidBody,
+};
 use bevy::{
     prelude::*,
     render::render_resource::AsBindGroup,
@@ -51,6 +54,12 @@ pub(super) fn plugin(app: &mut App) {
     .add_plugins(Material2dPlugin::<BoatMaterial>::default());
 }
 
+#[derive(Component)]
+pub struct PlayerHealth {
+    pub _max: i32,
+    pub current: i32,
+}
+
 /// The player character.
 pub fn player(
     max_speed: f32,
@@ -69,8 +78,14 @@ pub fn player(
         ..Default::default()
     };
     (
-        Name::new("Player"),
-        Player,
+        (
+            Name::new("Player"),
+            Player,
+            PlayerHealth {
+                _max: 100,
+                current: 100,
+            },
+        ),
         Mesh2d(mesh),
         MeshMaterial2d(material),
         Transform::from_translation(Vec3::ZERO),
@@ -99,6 +114,7 @@ pub fn player(
             // front: None,
         },
         stats,
+        CollisionEventsEnabled,
     )
 }
 
