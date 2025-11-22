@@ -120,8 +120,9 @@ impl WeaponType {
                         let b = (
                             FlameStrike {
                                 damage: *direct_damage * player.explosion_damage_percentage,
-                                _burning_stacks: *burning_stacks,
+                                burning_stacks: *burning_stacks,
                                 radius: *radius,
+                                burning_multiplier: 1.1,
                             },
                             *target,
                             Mesh2d(mesh),
@@ -181,8 +182,16 @@ pub struct CanonBall {
 #[derive(Component)]
 pub struct FlameStrike {
     pub damage: f32,
-    pub _burning_stacks: i32,
+    pub burning_stacks: i32,
+    pub burning_multiplier: f32,
     pub radius: f32,
+}
+
+#[derive(Component)]
+pub struct Burning {
+    pub stacks: i32,
+    pub damage_multiplier: f32,
+    pub tick: Timer,
 }
 
 #[derive(Component)]
@@ -213,6 +222,7 @@ impl Plugin for WeaponPlugin {
                 despawn_after_x,
                 cannon_ball_hit,
                 arrow_hit,
+                eval_burning,
             )
                 .run_if(in_state(Screen::Gameplay)),
         )
@@ -393,31 +403,54 @@ fn arrow_hit(
 fn flamestrike_hits(
     trigger: On<Insert, FlameStrike>,
     flamestrikes: Query<(&Transform, &FlameStrike)>,
-    mut enemies: Query<(&Transform, &mut Health), With<Enemy>>,
+    mut enemies: Query<(Entity, &Transform, &mut Health, Option<&mut Burning>), With<Enemy>>,
+    mut commands: Commands,
 ) -> std::result::Result<(), BevyError> {
     let (flame_transform, flame) = flamestrikes.get(trigger.entity)?;
     let r = flame.radius * flame.radius;
-    for (enemy_t, mut enemy) in &mut enemies {
+    for (enemy_entity, enemy_t, mut enemy, burning) in &mut enemies {
         if enemy_t
             .translation
             .distance_squared(flame_transform.translation)
             < r
         {
             enemy.0 -= flame.damage as i32;
+            if let Some(mut burning) = burning {
+                burning.stacks += flame.burning_stacks;
+                burning.damage_multiplier = burning.damage_multiplier.max(flame.burning_multiplier);
+            } else {
+                commands.entity(enemy_entity).insert(Burning {
+                    stacks: flame.burning_stacks,
+                    damage_multiplier: flame.burning_multiplier,
+                    tick: Timer::from_seconds(0.2, TimerMode::Repeating),
+                });
+            }
         }
     }
 
     Ok(())
 }
 
+fn eval_burning(mut enemies: Query<(&mut Burning, &mut Health), With<Enemy>>, time: Res<Time>) {
+    for (mut burning, mut healt) in &mut enemies {
+        burning.tick.tick(time.delta());
+        if burning.tick.is_finished() {
+            healt.0 -= (burning.stacks as f32 * burning.damage_multiplier) as i32;
+        }
+    }
+}
+
 fn update_time(
     time: Res<Time>,
     mut materials: ResMut<Assets<WeaponMaterial>>,
-    boats: Query<&MeshMaterial2d<WeaponMaterial>>,
+    boats: Query<(&MeshMaterial2d<WeaponMaterial>, Option<&Burning>)>,
 ) {
-    for c in boats.iter() {
-        if let Some(m) = materials.get_mut(c.0.id()) {
-            m.time = Vec4::new(m.time.x + time.delta_secs(), m.time.y, 0.0, 0.0);
+    for (material, burning) in boats.iter() {
+        if let Some(m) = materials.get_mut(material.0.id()) {
+            m.time.x += m.time.x + time.delta_secs();
+            if let Some(burning) = burning {
+                m.time.z = burning.stacks as f32;
+            }
         }
     }
 }

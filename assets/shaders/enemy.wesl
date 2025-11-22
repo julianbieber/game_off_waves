@@ -75,6 +75,10 @@ fn fragment(
         wood = vec4(1.0);
     }
 
+    if material.time.z > 0.0 {
+        wood.x += 1.0;
+    }
+
 
 
 
