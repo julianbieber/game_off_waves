@@ -10,7 +10,7 @@ use bevy::{
 use crate::theme::{interaction::InteractionPalette, palette::*};
 
 /// A root UI node that fills the window and centers its content.
-pub fn ui_root(name: impl Into<Cow<'static, str>>) -> impl Bundle {
+pub fn ui_root(name: impl Into<Cow<'static, str>>, show: bool) -> impl Bundle {
     (
         Name::new(name),
         Node {
@@ -24,6 +24,11 @@ pub fn ui_root(name: impl Into<Cow<'static, str>>) -> impl Bundle {
             ..default()
         },
         // Don't block picking events for other UI roots.
+        if show {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
+        },
         Pickable::IGNORE,
     )
 }

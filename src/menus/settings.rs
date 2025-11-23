@@ -21,7 +21,7 @@ pub(super) fn plugin(app: &mut App) {
 
 fn spawn_settings_menu(mut commands: Commands) {
     commands.spawn((
-        widget::ui_root("Settings Menu"),
+        widget::ui_root("Settings Menu", true),
         GlobalZIndex(2),
         DespawnOnExit(Menu::Settings),
         children![

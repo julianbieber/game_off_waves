@@ -14,7 +14,7 @@ pub(super) fn plugin(app: &mut App) {
 
 fn spawn_pause_menu(mut commands: Commands) {
     commands.spawn((
-        widget::ui_root("Pause Menu"),
+        widget::ui_root("Pause Menu", true),
         GlobalZIndex(2),
         DespawnOnExit(Menu::Pause),
         children![
