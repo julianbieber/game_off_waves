@@ -13,7 +13,7 @@ impl Plugin for EndPlugin {
 fn spawn_end_screen(mut commands: Commands, killed: Res<EnemiesKilled>) {
     let killed = killed.amount;
     commands.spawn((
-        widget::ui_root("End Screen", true),
+        widget::ui_root("End Screen"),
         DespawnOnExit(Screen::YouDied),
         children![widget::label(format!("Score: {killed}"))],
     ));

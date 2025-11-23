@@ -17,7 +17,7 @@ pub(super) fn plugin(app: &mut App) {
 
 fn spawn_credits_menu(mut commands: Commands) {
     commands.spawn((
-        widget::ui_root("Credits Menu", true),
+        widget::ui_root("Credits Menu"),
         GlobalZIndex(2),
         DespawnOnExit(Menu::Credits),
         children![

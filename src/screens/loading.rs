@@ -16,7 +16,7 @@ pub(super) fn plugin(app: &mut App) {
 
 fn spawn_loading_screen(mut commands: Commands) {
     commands.spawn((
-        widget::ui_root("Loading Screen", true),
+        widget::ui_root("Loading Screen"),
         DespawnOnExit(Screen::Loading),
         children![widget::label("Loading...")],
     ));
