@@ -88,8 +88,33 @@ fn cannon_ball(
     return color;
 }
 
-fn dotnoise(p: vec3f) -> f32 {
-    return dot(cos(p),sin(p.yzx));
+fn rotationMatrix(angles: vec3<f32>) -> mat3x3<f32> {
+    let cx = cos(angles.x);
+    let sx = sin(angles.x);
+    let cy = cos(angles.y);
+    let sy = sin(angles.y);
+    let cz = cos(angles.z);
+    let sz = sin(angles.z);
+
+    return mat3x3<f32>(
+        vec3<f32>( cy * cz,                   -cy * sz,                  sy       ),
+        vec3<f32>( sx * sy * cz + cx * sz,   -sx * sy * sz + cx * cz,  -sx * cy  ),
+        vec3<f32>( -cx * sy * cz + sx * sz,   cx * sy * sz + sx * cz,   cx * cy  )
+    );
+}
+
+fn dotnoise(uv_in: vec3<f32>, res: f32) -> f32 {
+    var uv = uv_in;
+    var v: f32 = 0.0;
+
+    // WGSL requires a constant loop bound and uses 'var' for the index
+    for (var i: i32 = 0; i < 4; i = i + 1) {
+        // Note: 0.002 is promoted to f32, res is f32 already
+        uv = uv * rotationMatrix(vec3<f32>(fract(sin(uv / res * 0.002))));
+        v = v + dot(cos(uv * 200.0), sin(uv.yzx * 100.0)) / res * 16.0;
+    }
+
+    return v / 50.0;
 }
 
 fn billow(p: vec3f) -> f32 {
@@ -98,7 +123,7 @@ fn billow(p: vec3f) -> f32 {
     var a = 1.0;
     var t = 0.0;
     for (var i = 0; i < 3; i = i + 1) {
-        t += abs(a*dotnoise(f32(i) * lunacricy * p));
+        t += abs(a*dotnoise(f32(i) * lunacricy * p, 1.0));
         a *= dampening;
 
     }
@@ -110,17 +135,35 @@ fn flame_strike(
     mesh: VertexOutput
 ) -> vec4<f32> {
     let orange =rgb(141, 74, 17);
-    let p = mesh.uv * 10.0 - vec2<f32>(5.0, 5.0);
+    let scale = mix(10.0, 1.0, material.time.x);
+    let p = mesh.uv * scale - vec2<f32>(scale*0.5);
 
-    var color: vec4<f32>;
 
-    color = vec4(orange*dotnoise(vec3(rot(mesh.world_position.xy*0.5, material.time.x*0.2), material.time.x)), 1.0);
+    let len2p = length(2.0 * p);
+    var color = 3.0 - (3.0 * len2p);
 
-    if length(p)*0.4 > material.time.x {
-        color.a = 0.0;
+    var coord = vec3<f32>(
+        atan2(p.x, p.y) / 6.2832 + 0.5,
+        length(p) * 0.4,
+        0.5
+    );
+
+    for (var i: i32 = 1; i <= 3; i = i + 1) {
+        let power = pow(2.0, f32(i));
+        color = color + (1.5 / power) *
+            dotnoise(
+                coord + vec3<f32>(0.0, -material.time.x * 0.05, material.time.x * 0.01),
+                power * 16.0
+            );
     }
 
-    return color;
+    let c = max(color, 0.0);
+    return vec4<f32>(
+        color,
+        pow(c, 2.0) * 0.4,
+        pow(c, 3.0) * 0.15,
+        c
+    );
 }
 
 fn arrow(
