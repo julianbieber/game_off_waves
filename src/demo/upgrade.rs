@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
+    demo::player::{PlayerStats, StatIncreases},
     screens::Screen,
     theme::widget::{button, label},
 };
@@ -32,6 +33,7 @@ fn block_root() -> impl Bundle {
         Pickable::IGNORE,
     )
 }
+
 pub fn weapons_column() -> impl Bundle {
     (
         Node {
@@ -87,6 +89,11 @@ pub fn weapons_column() -> impl Bundle {
         ],
     )
 }
+
+fn prng(time: &Time) -> u8 {
+    ((time.elapsed_secs() * 312936.234114).sin().fract() * 10.0) as u8
+}
+
 pub fn stats_column() -> impl Bundle {
     (
         Node {
@@ -102,13 +109,33 @@ pub fn stats_column() -> impl Bundle {
         Pickable::IGNORE,
         children![
             (label("Stats")),
-            button("Stat1", tmp_click),
-            button("Stat2", tmp_click),
-            button("Stat3", tmp_click),
+            (
+                button("Stat1", stat_increase),
+                StatIncreases::ProjectileDamagePercentage
+            ),
+            (
+                button("Stat2", stat_increase),
+                StatIncreases::ProjectileSpeedPercentage
+            ),
+            (
+                button("Stat3", stat_increase),
+                StatIncreases::ProjectileRatePercentage
+            ),
         ],
     )
 }
 
 fn tmp_click(_: On<Pointer<Click>>) {
     warn!("click");
+}
+
+fn stat_increase(
+    _: On<Pointer<Click>>,
+    mut players: Query<&mut PlayerStats>,
+) -> Result<(), BevyError> {
+    let mut player = players.single_mut()?;
+
+    player.explosion_damage_percentage *= 1.1;
+
+    Ok(())
 }

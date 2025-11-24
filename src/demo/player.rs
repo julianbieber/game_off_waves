@@ -21,6 +21,14 @@ use crate::{
 };
 
 #[derive(Component)]
+pub enum StatIncreases {
+    ProjectileDamagePercentage,
+    ProjectileSpeedPercentage,
+    ProjectileRatePercentage,
+    ExplosionDamagePercenage,
+}
+
+#[derive(Component)]
 pub struct PlayerStats {
     pub projectile_damage_percentage: f32,
     pub projectile_speed_percentage: f32,
