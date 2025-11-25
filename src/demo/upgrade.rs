@@ -8,14 +8,25 @@ use crate::{
 
 pub struct UpgradePlugin;
 
+#[derive(Resource)]
+pub struct AvailableUpgrades {
+    pub stats: u32,
+    pub _gold: u32,
+}
+
 impl Plugin for UpgradePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(Screen::Gameplay), setup_upgrade_ui);
+        app.add_systems(Update, update_upgrade_text);
+        app.insert_resource(AvailableUpgrades { stats: 3, _gold: 0 });
     }
 }
 
-fn setup_upgrade_ui(mut commands: Commands) {
-    commands.spawn((block_root(), children![weapons_column(), stats_column()]));
+fn setup_upgrade_ui(mut commands: Commands, upgrades: Res<AvailableUpgrades>) {
+    commands.spawn((
+        block_root(),
+        children![weapons_column(), stats_column(upgrades)],
+    ));
 }
 
 fn block_root() -> impl Bundle {
@@ -90,11 +101,15 @@ pub fn weapons_column() -> impl Bundle {
     )
 }
 
-fn prng(time: &Time) -> u8 {
+fn _prng(time: &Time) -> u8 {
     ((time.elapsed_secs() * 312936.234114).sin().fract() * 10.0) as u8
 }
 
-pub fn stats_column() -> impl Bundle {
+#[derive(Component)]
+struct AvalableTextMarker;
+
+pub fn stats_column(upgrades: Res<AvailableUpgrades>) -> impl Bundle {
+    let available = upgrades.stats;
     (
         Node {
             position_type: PositionType::Relative,
@@ -108,7 +123,10 @@ pub fn stats_column() -> impl Bundle {
         },
         Pickable::IGNORE,
         children![
-            (label("Stats")),
+            (
+                label(format!("Available Stats upgrades: {available}")),
+                AvalableTextMarker
+            ),
             (
                 button("Stat1", stat_increase),
                 StatIncreases::ProjectileDamagePercentage
@@ -125,6 +143,16 @@ pub fn stats_column() -> impl Bundle {
     )
 }
 
+fn update_upgrade_text(
+    mut texts: Query<&mut Text, With<AvalableTextMarker>>,
+    upgrades: Res<AvailableUpgrades>,
+) {
+    for mut text in &mut texts {
+        let available = upgrades.stats;
+        text.0 = format!("Available Stats upgrades: {available}");
+    }
+}
+
 fn tmp_click(_: On<Pointer<Click>>) {
     warn!("click");
 }
@@ -132,10 +160,14 @@ fn tmp_click(_: On<Pointer<Click>>) {
 fn stat_increase(
     _: On<Pointer<Click>>,
     mut players: Query<&mut PlayerStats>,
+    mut upgrades: ResMut<AvailableUpgrades>,
 ) -> Result<(), BevyError> {
-    let mut player = players.single_mut()?;
+    if upgrades.stats > 0 {
+        let mut player = players.single_mut()?;
 
-    player.explosion_damage_percentage *= 1.1;
+        player.explosion_damage_percentage *= 1.1;
+        upgrades.stats -= 1;
+    }
 
     Ok(())
 }
