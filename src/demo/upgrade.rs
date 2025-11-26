@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
+    NoMarker,
     demo::player::{PlayerStats, StatIncreases},
     screens::Screen,
     theme::widget::{button, label},
@@ -17,15 +18,15 @@ pub struct AvailableUpgrades {
 impl Plugin for UpgradePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(Screen::Gameplay), setup_upgrade_ui);
-        app.add_systems(Update, update_upgrade_text);
+        app.add_systems(Update, (update_upgrade_text, update_stat_button_text));
         app.insert_resource(AvailableUpgrades { stats: 3, _gold: 0 });
     }
 }
 
-fn setup_upgrade_ui(mut commands: Commands, upgrades: Res<AvailableUpgrades>) {
+fn setup_upgrade_ui(mut commands: Commands, upgrades: Res<AvailableUpgrades>, time: Res<Time>) {
     commands.spawn((
         block_root(),
-        children![weapons_column(), stats_column(upgrades)],
+        children![weapons_column(), stats_column(upgrades, time)],
     ));
 }
 
@@ -60,7 +61,7 @@ pub fn weapons_column() -> impl Bundle {
         Pickable::IGNORE,
         children![
             (label("Weapons")),
-            button("Top", tmp_click),
+            button("Top", tmp_click, NoMarker),
             (
                 Node {
                     position_type: PositionType::Relative,
@@ -79,9 +80,9 @@ pub fn weapons_column() -> impl Bundle {
                             ..Default::default()
                         },
                         children![
-                            button("left_top", tmp_click),
-                            button("left_middle", tmp_click),
-                            button("left_bottom", tmp_click),
+                            button("left_top", tmp_click, NoMarker),
+                            button("left_middle", tmp_click, NoMarker),
+                            button("left_bottom", tmp_click, NoMarker),
                         ]
                     ),
                     (
@@ -90,9 +91,9 @@ pub fn weapons_column() -> impl Bundle {
                             ..Default::default()
                         },
                         children![
-                            button("right_top", tmp_click),
-                            button("right_middle", tmp_click),
-                            button("right_bottom", tmp_click)
+                            button("right_top", tmp_click, NoMarker),
+                            button("right_middle", tmp_click, NoMarker),
+                            button("right_bottom", tmp_click, NoMarker)
                         ]
                     )
                 ]
@@ -101,14 +102,24 @@ pub fn weapons_column() -> impl Bundle {
     )
 }
 
-fn _prng(time: &Time) -> u8 {
-    ((time.elapsed_secs() * 312936.234114).sin().fract() * 10.0) as u8
+fn prng(time: f32) -> u8 {
+    ((time * 3_136.234_1).sin().fract() * 10.0) as u8
 }
 
 #[derive(Component)]
 struct AvalableTextMarker;
 
-pub fn stats_column(upgrades: Res<AvailableUpgrades>) -> impl Bundle {
+fn rng_to_stat(v: u8) -> StatIncreases {
+    match v % 4 {
+        0 => StatIncreases::ProjectileDamagePercentage,
+        1 => StatIncreases::ProjectileSpeedPercentage,
+        2 => StatIncreases::ProjectileRatePercentage,
+        3 => StatIncreases::ExplosionDamagePercenage,
+        _ => unreachable!(),
+    }
+}
+
+pub fn stats_column(upgrades: Res<AvailableUpgrades>, time: Res<Time>) -> impl Bundle {
     let available = upgrades.stats;
     (
         Node {
@@ -127,20 +138,54 @@ pub fn stats_column(upgrades: Res<AvailableUpgrades>) -> impl Bundle {
                 label(format!("Available Stats upgrades: {available}")),
                 AvalableTextMarker
             ),
-            (
-                button("Stat1", stat_increase),
-                StatIncreases::ProjectileDamagePercentage
+            button(
+                "Stat1",
+                stat_increase,
+                rng_to_stat(prng(time.elapsed_secs()))
             ),
-            (
-                button("Stat2", stat_increase),
-                StatIncreases::ProjectileSpeedPercentage
+            button(
+                "Stat2",
+                stat_increase,
+                rng_to_stat(prng(time.elapsed_secs() + 0.2))
             ),
-            (
-                button("Stat3", stat_increase),
-                StatIncreases::ProjectileRatePercentage
+            button(
+                "Stat3",
+                stat_increase,
+                rng_to_stat(prng(time.elapsed_secs() + 0.3))
             ),
         ],
     )
+}
+
+fn update_stat_button_text(
+    texts: Query<(&mut Text, &StatIncreases)>,
+    players: Query<&PlayerStats>,
+) -> Result<(), BevyError> {
+    let player = players.single()?;
+    let projectile_damage = player.projectile_damage_percentage;
+    let projectile_rate = player.projectile_rate_percentage;
+    let projectile_speed = player.projectile_speed_percentage;
+    let explosion_damage = player.explosion_damage_percentage;
+    for (mut text, stat) in texts {
+        let stat_text = match stat {
+            StatIncreases::ProjectileDamagePercentage => {
+                format!("projectile damage ({projectile_damage})")
+            }
+            StatIncreases::ProjectileSpeedPercentage => {
+                format!("projectile speed ({projectile_speed})")
+            }
+            StatIncreases::ProjectileRatePercentage => {
+                format!("projectile damage ({projectile_rate})")
+            }
+            StatIncreases::ExplosionDamagePercenage => {
+                format!("projectile damage ({explosion_damage})")
+            }
+        };
+
+        text.0 = stat_text;
+    }
+
+    Ok(())
 }
 
 fn update_upgrade_text(
@@ -158,14 +203,22 @@ fn tmp_click(_: On<Pointer<Click>>) {
 }
 
 fn stat_increase(
-    _: On<Pointer<Click>>,
+    click: On<Pointer<Click>>,
     mut players: Query<&mut PlayerStats>,
     mut upgrades: ResMut<AvailableUpgrades>,
+    source_button_stat: Query<&StatIncreases>,
 ) -> Result<(), BevyError> {
     if upgrades.stats > 0 {
         let mut player = players.single_mut()?;
+        let clicked = source_button_stat.get(click.entity)?;
 
-        player.explosion_damage_percentage *= 1.1;
+        match clicked {
+            StatIncreases::ProjectileDamagePercentage => player.projectile_damage_percentage += 0.1,
+            StatIncreases::ProjectileSpeedPercentage => player.projectile_speed_percentage += 0.1,
+            StatIncreases::ProjectileRatePercentage => player.projectile_rate_percentage += 0.1,
+            StatIncreases::ExplosionDamagePercenage => player.explosion_damage_percentage += 0.1,
+        }
+
         upgrades.stats -= 1;
     }
 

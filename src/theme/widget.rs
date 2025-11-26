@@ -49,7 +49,11 @@ pub fn label(text: impl Into<String>) -> impl Bundle {
 }
 
 /// A large rounded button with text and an action defined as an [`Observer`].
-pub fn button<E, B, M, I>(text: impl Into<String>, action: I) -> impl Bundle
+pub fn button<E, B, M, I>(
+    text: impl Into<String>,
+    action: I,
+    marker: impl Component + Clone,
+) -> impl Bundle
 where
     E: EntityEvent,
     B: Bundle,
@@ -68,11 +72,16 @@ where
             },
             BorderRadius::MAX,
         ),
+        marker,
     )
 }
 
 /// A small square button with text and an action defined as an [`Observer`].
-pub fn button_small<E, B, M, I>(text: impl Into<String>, action: I) -> impl Bundle
+pub fn button_small<E, B, M, I>(
+    text: impl Into<String>,
+    action: I,
+    marker: impl Component + Clone,
+) -> impl Bundle
 where
     E: EntityEvent,
     B: Bundle,
@@ -88,6 +97,7 @@ where
             justify_content: JustifyContent::Center,
             ..default()
         },
+        marker,
     )
 }
 
@@ -96,6 +106,7 @@ fn button_base<E, B, M, I>(
     text: impl Into<String>,
     action: I,
     button_bundle: impl Bundle,
+    marker: impl Component + Clone,
 ) -> impl Bundle
 where
     E: EntityEvent,
@@ -118,6 +129,7 @@ where
                         hovered: BUTTON_HOVERED_BACKGROUND,
                         pressed: BUTTON_PRESSED_BACKGROUND,
                     },
+                    marker.clone(),
                     children![(
                         Name::new("Button Text"),
                         Text(text),
@@ -125,6 +137,7 @@ where
                         TextColor(BUTTON_TEXT),
                         // Don't bubble picking events from the text up to the button.
                         Pickable::IGNORE,
+                        marker
                     )],
                 ))
                 .insert(button_bundle)

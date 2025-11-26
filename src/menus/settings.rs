@@ -4,7 +4,7 @@
 
 use bevy::{audio::Volume, input::common_conditions::input_just_pressed, prelude::*};
 
-use crate::{menus::Menu, screens::Screen, theme::prelude::*};
+use crate::{NoMarker, menus::Menu, screens::Screen, theme::prelude::*};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(OnEnter(Menu::Settings), spawn_settings_menu);
@@ -27,7 +27,7 @@ fn spawn_settings_menu(mut commands: Commands) {
         children![
             widget::header("Settings"),
             settings_grid(),
-            widget::button("Back", go_back_on_click),
+            widget::button("Back", go_back_on_click, NoMarker),
         ],
     ));
 }
@@ -63,7 +63,7 @@ fn global_volume_widget() -> impl Bundle {
             ..default()
         },
         children![
-            widget::button_small("-", lower_global_volume),
+            widget::button_small("-", lower_global_volume, NoMarker),
             (
                 Name::new("Current Volume"),
                 Node {
@@ -73,7 +73,7 @@ fn global_volume_widget() -> impl Bundle {
                 },
                 children![(widget::label(""), GlobalVolumeLabel)],
             ),
-            widget::button_small("+", raise_global_volume),
+            widget::button_small("+", raise_global_volume, NoMarker),
         ],
     )
 }

@@ -23,6 +23,9 @@ fn main() -> AppExit {
 
 pub struct AppPlugin;
 
+#[derive(Component, Clone)]
+pub struct NoMarker;
+
 impl Plugin for AppPlugin {
     fn build(&self, app: &mut App) {
         // Add Bevy plugins.

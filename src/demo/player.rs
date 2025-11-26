@@ -20,8 +20,7 @@ use crate::{
     screens::Screen,
 };
 
-#[allow(dead_code)]
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub enum StatIncreases {
     ProjectileDamagePercentage,
     ProjectileSpeedPercentage,
