@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::{
     prelude::*,
     render::render_resource::AsBindGroup,
@@ -15,10 +17,12 @@ pub struct WeaponPlugin;
 #[allow(dead_code)]
 pub enum WeaponType {
     Canon {
+        base_cool_down: f32,
         cooldown: Timer,
         damage: f32,
     },
     FireMage {
+        base_cool_down: f32,
         cooldown: Timer,
         direct_damage: f32,
         burning_stacks: i32,
@@ -26,6 +30,7 @@ pub enum WeaponType {
         range: f32,
     },
     Archer {
+        base_cool_down: f32,
         cooldown: Timer,
         damage: f32,
         range: f32,
@@ -34,38 +39,41 @@ pub enum WeaponType {
 }
 
 impl WeaponType {
-    pub fn default_cannon(player: &PlayerStats) -> WeaponType {
-        WeaponType::Canon {
-            cooldown: Timer::from_seconds(
-                3.0 * player.projectile_rate_percentage,
-                TimerMode::Repeating,
-            ),
-            damage: 30.0,
-        }
+    pub fn default_cannon(level: u32) -> (WeaponType, u32) {
+        (
+            WeaponType::Canon {
+                cooldown: Timer::from_seconds(3.0, TimerMode::Repeating),
+                damage: 30.0 + (level as f32) * 5.0,
+                base_cool_down: 3.0,
+            },
+            level,
+        )
     }
 
-    pub fn default_fire_mage(player: &PlayerStats) -> WeaponType {
-        WeaponType::FireMage {
-            cooldown: Timer::from_seconds(
-                2.0 * player.projectile_rate_percentage,
-                TimerMode::Repeating,
-            ),
-            direct_damage: 10.0,
-            burning_stacks: 0,
-            radius: 50.0,
-            range: 200.0,
-        }
+    pub fn default_fire_mage(level: u32) -> (WeaponType, u32) {
+        (
+            WeaponType::FireMage {
+                cooldown: Timer::from_seconds(2.0, TimerMode::Repeating),
+                direct_damage: 10.0 + (level as f32) * 1.0,
+                burning_stacks: level as i32,
+                radius: 50.0 + (level as f32) * 2.0,
+                range: 200.0 + (level as f32) * 50.0,
+                base_cool_down: 2.0,
+            },
+            level,
+        )
     }
-    pub fn default_archer(player: &PlayerStats) -> WeaponType {
-        WeaponType::Archer {
-            cooldown: Timer::from_seconds(
-                1.0 * player.projectile_rate_percentage,
-                TimerMode::Repeating,
-            ),
-            damage: 10.0,
-            range: 400.0,
-            angle: std::f32::consts::FRAC_PI_2,
-        }
+    pub fn default_archer(level: u32) -> (WeaponType, u32) {
+        (
+            WeaponType::Archer {
+                cooldown: Timer::from_seconds(1.0, TimerMode::Repeating),
+                damage: 10.0,
+                range: 400.0 + (level as f32) * 30.0,
+                angle: std::f32::consts::FRAC_PI_2,
+                base_cool_down: 1.0,
+            },
+            level,
+        )
     }
 
     /// This function does targetting and timer eval
@@ -82,9 +90,16 @@ impl WeaponType {
         materials: &mut Assets<WeaponMaterial>,
     ) {
         match self {
-            WeaponType::Canon { cooldown, damage } => {
+            WeaponType::Canon {
+                cooldown,
+                damage,
+                base_cool_down,
+            } => {
                 cooldown.tick(time.delta());
                 if cooldown.is_finished() {
+                    cooldown.set_duration(Duration::from_secs_f32(
+                        *base_cool_down * player.projectile_rate_percentage,
+                    ));
                     let mesh = meshes.add(Rectangle::new(30.0, 30.0));
                     let material = materials.add(WeaponMaterial { time: Vec4::ZERO });
                     let b = (
@@ -106,9 +121,13 @@ impl WeaponType {
                 direct_damage,
                 burning_stacks,
                 radius,
+                base_cool_down,
             } => {
                 cooldown.tick(time.delta());
                 if cooldown.is_finished() {
+                    cooldown.set_duration(Duration::from_secs_f32(
+                        *base_cool_down * player.projectile_rate_percentage,
+                    ));
                     let radius_sq = *range * *range;
                     if let Some(target) = enemies.iter().find(|e| {
                         user_transform.translation.distance_squared(e.translation) < radius_sq
@@ -138,9 +157,13 @@ impl WeaponType {
                 damage,
                 range,
                 angle,
+                base_cool_down,
             } => {
                 cooldown.tick(time.delta());
                 if cooldown.is_finished() {
+                    cooldown.set_duration(Duration::from_secs_f32(
+                        *base_cool_down * player.projectile_rate_percentage,
+                    ));
                     let radius_sq = *range * *range;
                     if let Some(target) = enemies.iter().find(|e| {
                         let angle_to_enemy = angle_between(&user_transform, e.translation.xy());
@@ -205,9 +228,9 @@ pub struct DespawnAfter(Timer);
 
 #[derive(Component)]
 pub struct WeaponSlots {
-    pub left: [Option<WeaponType>; 3],
-    pub right: [Option<WeaponType>; 3],
-    pub front: Option<WeaponType>,
+    pub left: [Option<(WeaponType, u32)>; 3],
+    pub right: [Option<(WeaponType, u32)>; 3],
+    pub front: Option<(WeaponType, u32)>,
 }
 
 impl Plugin for WeaponPlugin {
@@ -246,7 +269,7 @@ fn eval_weapons(
         for (i, left_slot) in weapon_holder.left.iter_mut().enumerate() {
             if let Some(left_slot) = left_slot {
                 let weapon_transform = left_weapon_transform(transform, forward, angle, i);
-                left_slot.eval(
+                left_slot.0.eval(
                     &mut commands,
                     &time,
                     weapon_transform,
@@ -260,7 +283,7 @@ fn eval_weapons(
         for (i, right_slot) in weapon_holder.right.iter_mut().enumerate() {
             if let Some(right_slot) = right_slot {
                 let weapon_transform = right_weapon_transform(transform, forward, angle, i);
-                right_slot.eval(
+                right_slot.0.eval(
                     &mut commands,
                     &time,
                     weapon_transform,
@@ -281,7 +304,7 @@ fn eval_weapons(
                         angle - std::f32::consts::FRAC_PI_2,
                     ));
 
-            front.eval(
+            front.0.eval(
                 &mut commands,
                 &time,
                 weapon_transform,

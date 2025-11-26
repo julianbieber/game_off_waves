@@ -1,8 +1,10 @@
 use bevy::prelude::*;
 
 use crate::{
-    NoMarker,
-    demo::player::{PlayerStats, StatIncreases},
+    demo::{
+        player::{PlayerStats, StatIncreases},
+        weapons::{WeaponSlots, WeaponType},
+    },
     screens::Screen,
     theme::widget::{button, label},
 };
@@ -18,7 +20,14 @@ pub struct AvailableUpgrades {
 impl Plugin for UpgradePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(Screen::Gameplay), setup_upgrade_ui);
-        app.add_systems(Update, (update_upgrade_text, update_stat_button_text));
+        app.add_systems(
+            Update,
+            (
+                update_upgrade_text,
+                update_stat_button_text,
+                update_weapon_button_texts,
+            ),
+        );
         app.insert_resource(AvailableUpgrades { stats: 3, _gold: 0 });
     }
 }
@@ -46,6 +55,13 @@ fn block_root() -> impl Bundle {
     )
 }
 
+#[derive(Component, Clone)]
+enum WeaponButtonMarker {
+    Left(u32),
+    Right(u32),
+    Front,
+}
+
 pub fn weapons_column() -> impl Bundle {
     (
         Node {
@@ -61,7 +77,7 @@ pub fn weapons_column() -> impl Bundle {
         Pickable::IGNORE,
         children![
             (label("Weapons")),
-            button("Top", tmp_click, NoMarker),
+            button("Top", tmp_click, WeaponButtonMarker::Front),
             (
                 Node {
                     position_type: PositionType::Relative,
@@ -80,9 +96,9 @@ pub fn weapons_column() -> impl Bundle {
                             ..Default::default()
                         },
                         children![
-                            button("left_top", tmp_click, NoMarker),
-                            button("left_middle", tmp_click, NoMarker),
-                            button("left_bottom", tmp_click, NoMarker),
+                            button("left_top", weapon_upgrade, WeaponButtonMarker::Left(0)),
+                            button("left_middle", weapon_upgrade, WeaponButtonMarker::Left(1)),
+                            button("left_bottom", weapon_upgrade, WeaponButtonMarker::Left(2)),
                         ]
                     ),
                     (
@@ -91,9 +107,9 @@ pub fn weapons_column() -> impl Bundle {
                             ..Default::default()
                         },
                         children![
-                            button("right_top", tmp_click, NoMarker),
-                            button("right_middle", tmp_click, NoMarker),
-                            button("right_bottom", tmp_click, NoMarker)
+                            button("right_top", weapon_upgrade, WeaponButtonMarker::Right(0)),
+                            button("right_middle", weapon_upgrade, WeaponButtonMarker::Right(1)),
+                            button("right_bottom", weapon_upgrade, WeaponButtonMarker::Right(2))
                         ]
                     )
                 ]
@@ -107,7 +123,7 @@ fn prng(time: f32) -> u8 {
 }
 
 #[derive(Component)]
-struct AvalableTextMarker;
+struct AvailableTextMarker;
 
 fn rng_to_stat(v: u8) -> StatIncreases {
     match v % 4 {
@@ -136,7 +152,7 @@ pub fn stats_column(upgrades: Res<AvailableUpgrades>, time: Res<Time>) -> impl B
         children![
             (
                 label(format!("Available Stats upgrades: {available}")),
-                AvalableTextMarker
+                AvailableTextMarker
             ),
             button(
                 "Stat1",
@@ -169,16 +185,16 @@ fn update_stat_button_text(
     for (mut text, stat) in texts {
         let stat_text = match stat {
             StatIncreases::ProjectileDamagePercentage => {
-                format!("projectile damage ({projectile_damage})")
+                format!("projectile damage ({projectile_damage:.2})")
             }
             StatIncreases::ProjectileSpeedPercentage => {
-                format!("projectile speed ({projectile_speed})")
+                format!("projectile speed ({projectile_speed:.2})")
             }
             StatIncreases::ProjectileRatePercentage => {
-                format!("projectile damage ({projectile_rate})")
+                format!("projectile rate ({projectile_rate:.2})")
             }
             StatIncreases::ExplosionDamagePercenage => {
-                format!("projectile damage ({explosion_damage})")
+                format!("explosion damage ({explosion_damage:.2})")
             }
         };
 
@@ -189,7 +205,7 @@ fn update_stat_button_text(
 }
 
 fn update_upgrade_text(
-    mut texts: Query<&mut Text, With<AvalableTextMarker>>,
+    mut texts: Query<&mut Text, With<AvailableTextMarker>>,
     upgrades: Res<AvailableUpgrades>,
 ) {
     for mut text in &mut texts {
@@ -200,6 +216,63 @@ fn update_upgrade_text(
 
 fn tmp_click(_: On<Pointer<Click>>) {
     warn!("click");
+}
+
+fn weapon_upgrade(
+    click: On<Pointer<Click>>,
+    mut players: Query<&mut WeaponSlots>,
+    mut upgrades: ResMut<AvailableUpgrades>,
+    buttons: Query<&WeaponButtonMarker>,
+) -> Result<(), BevyError> {
+    let mut player = players.single_mut()?;
+    let selected_weapon_slot = buttons.get(click.entity)?;
+
+    match selected_weapon_slot {
+        WeaponButtonMarker::Left(i) => {
+            assert!(*i < 3, "index out of range for weapon access");
+            player.left[*i as usize] = Some(WeaponType::default_fire_mage(2));
+        }
+        WeaponButtonMarker::Right(i) => {
+            assert!(*i < 3, "index out of range for weapon access");
+            player.right[*i as usize] = Some(WeaponType::default_fire_mage(2));
+        }
+        WeaponButtonMarker::Front => {
+            player.front = Some(WeaponType::default_fire_mage(2));
+        }
+    }
+
+    upgrades._gold -= 2;
+
+    Ok(())
+}
+
+fn update_weapon_button_texts(
+    mut texts: Query<(&mut Text, &WeaponButtonMarker)>,
+    players: Query<&WeaponSlots>,
+) -> Result<(), BevyError> {
+    let player = players.single()?;
+
+    let _available_in_shop = WeaponType::default_fire_mage(1);
+
+    for (mut text, weapon_marker) in &mut texts {
+        match weapon_marker {
+            WeaponButtonMarker::Left(i) => {
+                assert!(*i < 3, "weapon index out of range");
+                let current = &player.left[*i as usize];
+                if let Some(_current) = current {
+                    text.0 = format!("Replace current with")
+                } else {
+                    text.0 = format!("Use ")
+                }
+            }
+            WeaponButtonMarker::Right(i) => {
+                assert!(*i < 3, "weapon index out of range");
+            }
+            WeaponButtonMarker::Front => todo!(),
+        }
+    }
+
+    Ok(())
 }
 
 fn stat_increase(
@@ -215,7 +288,7 @@ fn stat_increase(
         match clicked {
             StatIncreases::ProjectileDamagePercentage => player.projectile_damage_percentage += 0.1,
             StatIncreases::ProjectileSpeedPercentage => player.projectile_speed_percentage += 0.1,
-            StatIncreases::ProjectileRatePercentage => player.projectile_rate_percentage += 0.1,
+            StatIncreases::ProjectileRatePercentage => player.projectile_rate_percentage -= 0.1,
             StatIncreases::ExplosionDamagePercenage => player.explosion_damage_percentage += 0.1,
         }
 

@@ -23,6 +23,7 @@ fn main() -> AppExit {
 
 pub struct AppPlugin;
 
+#[allow(dead_code)]
 #[derive(Component, Clone)]
 pub struct NoMarker;
 
