@@ -14,12 +14,13 @@ pub struct UpgradePlugin;
 #[derive(Resource)]
 pub struct AvailableUpgrades {
     pub stats: u32,
-    pub _gold: u32,
+    pub gold: u32,
+    pub current_shop: Option<(WeaponType, u32)>,
 }
 
 impl Plugin for UpgradePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(Screen::Gameplay), setup_upgrade_ui);
+        app.add_systems(OnEnter(Screen::Shop), setup_upgrade_ui);
         app.add_systems(
             Update,
             (
@@ -28,7 +29,11 @@ impl Plugin for UpgradePlugin {
                 update_weapon_button_texts,
             ),
         );
-        app.insert_resource(AvailableUpgrades { stats: 3, _gold: 0 });
+        app.insert_resource(AvailableUpgrades {
+            stats: 3,
+            gold: 0,
+            current_shop: None,
+        });
     }
 }
 
@@ -36,6 +41,7 @@ fn setup_upgrade_ui(mut commands: Commands, upgrades: Res<AvailableUpgrades>, ti
     commands.spawn((
         block_root(),
         children![weapons_column(), stats_column(upgrades, time)],
+        DespawnOnExit(Screen::Shop),
     ));
 }
 
@@ -77,7 +83,7 @@ pub fn weapons_column() -> impl Bundle {
         Pickable::IGNORE,
         children![
             (label("Weapons")),
-            button("Top", tmp_click, WeaponButtonMarker::Front),
+            button("Top", weapon_upgrade, WeaponButtonMarker::Front),
             (
                 Node {
                     position_type: PositionType::Relative,
@@ -214,10 +220,6 @@ fn update_upgrade_text(
     }
 }
 
-fn tmp_click(_: On<Pointer<Click>>) {
-    warn!("click");
-}
-
 fn weapon_upgrade(
     click: On<Pointer<Click>>,
     mut players: Query<&mut WeaponSlots>,
@@ -226,22 +228,23 @@ fn weapon_upgrade(
 ) -> Result<(), BevyError> {
     let mut player = players.single_mut()?;
     let selected_weapon_slot = buttons.get(click.entity)?;
+    if upgrades.gold >= 2 {
+        match selected_weapon_slot {
+            WeaponButtonMarker::Left(i) => {
+                assert!(*i < 3, "index out of range for weapon access");
+                player.left[*i as usize] = Some(WeaponType::default_fire_mage(2));
+            }
+            WeaponButtonMarker::Right(i) => {
+                assert!(*i < 3, "index out of range for weapon access");
+                player.right[*i as usize] = Some(WeaponType::default_fire_mage(2));
+            }
+            WeaponButtonMarker::Front => {
+                player.front = Some(WeaponType::default_fire_mage(2));
+            }
+        }
 
-    match selected_weapon_slot {
-        WeaponButtonMarker::Left(i) => {
-            assert!(*i < 3, "index out of range for weapon access");
-            player.left[*i as usize] = Some(WeaponType::default_fire_mage(2));
-        }
-        WeaponButtonMarker::Right(i) => {
-            assert!(*i < 3, "index out of range for weapon access");
-            player.right[*i as usize] = Some(WeaponType::default_fire_mage(2));
-        }
-        WeaponButtonMarker::Front => {
-            player.front = Some(WeaponType::default_fire_mage(2));
-        }
+        upgrades.gold -= 2;
     }
-
-    upgrades._gold -= 2;
 
     Ok(())
 }
@@ -249,30 +252,57 @@ fn weapon_upgrade(
 fn update_weapon_button_texts(
     mut texts: Query<(&mut Text, &WeaponButtonMarker)>,
     players: Query<&WeaponSlots>,
+    shop: Res<AvailableUpgrades>,
 ) -> Result<(), BevyError> {
     let player = players.single()?;
 
-    let _available_in_shop = WeaponType::default_fire_mage(1);
-
-    for (mut text, weapon_marker) in &mut texts {
-        match weapon_marker {
-            WeaponButtonMarker::Left(i) => {
-                assert!(*i < 3, "weapon index out of range");
-                let current = &player.left[*i as usize];
-                if let Some(_current) = current {
-                    text.0 = format!("Replace current with")
-                } else {
-                    text.0 = format!("Use ")
+    if let Some(available_in_shop) = &shop.current_shop {
+        let s = weapon_string(available_in_shop);
+        for (mut text, weapon_marker) in &mut texts {
+            match weapon_marker {
+                WeaponButtonMarker::Left(i) => {
+                    assert!(*i < 3, "weapon index out of range");
+                    let current = &player.left[*i as usize];
+                    if let Some(_current) = current {
+                        text.0 = format!("Replace current with {s}")
+                    } else {
+                        text.0 = format!("Use {s}")
+                    }
+                }
+                WeaponButtonMarker::Right(i) => {
+                    assert!(*i < 3, "weapon index out of range");
+                    let current = &player.left[*i as usize];
+                    if let Some(_current) = current {
+                        text.0 = format!("Replace current with {s}")
+                    } else {
+                        text.0 = format!("Use {s}")
+                    }
+                }
+                WeaponButtonMarker::Front => {
+                    if let Some(_current) = &player.front {
+                        text.0 = format!("Replace current with {s}")
+                    } else {
+                        text.0 = format!("Use {s}")
+                    }
                 }
             }
-            WeaponButtonMarker::Right(i) => {
-                assert!(*i < 3, "weapon index out of range");
-            }
-            WeaponButtonMarker::Front => todo!(),
+        }
+    } else {
+        for (mut text, _) in &mut texts {
+            text.0 = "No weapon available".to_string();
         }
     }
 
     Ok(())
+}
+
+fn weapon_string(w: &(WeaponType, u32)) -> String {
+    let lvl = w.1;
+    match w.0 {
+        WeaponType::Canon { .. } => format!("Canon lvl {lvl}"),
+        WeaponType::FireMage { .. } => format!("Canon lvl {lvl}"),
+        WeaponType::Archer { .. } => format!("Canon lvl {lvl}"),
+    }
 }
 
 fn stat_increase(

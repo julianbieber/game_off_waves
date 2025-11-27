@@ -111,6 +111,67 @@ fn bilinear_height(uv: vec2<f32>) -> f32 {
     // return hxy;
 }
 
+fn rotationMatrix(angles: vec3<f32>) -> mat3x3<f32> {
+    let cx = cos(angles.x);
+    let sx = sin(angles.x);
+    let cy = cos(angles.y);
+    let sy = sin(angles.y);
+    let cz = cos(angles.z);
+    let sz = sin(angles.z);
+
+    return mat3x3<f32>(
+        vec3<f32>( cy * cz,                   -cy * sz,                  sy       ),
+        vec3<f32>( sx * sy * cz + cx * sz,   -sx * sy * sz + cx * cz,  -sx * cy  ),
+        vec3<f32>( -cx * sy * cz + sx * sz,   cx * sy * sz + sx * cz,   cx * cy  )
+    );
+}
+
+fn color_space_sand(v: f32) -> vec3<f32> {
+    let a = vec3f(0.54, 0.5, 0.4);
+    let b = vec3f(0.35, 0.4, 0.2);
+    let c = vec3f(0.3, 0.3, 0.2);
+    let d = vec3f(0.0, 0.0, 0.0);
+
+    return a + b*cos(6.28 * (c*v + d));
+}
+fn color_space_rock(v: f32) -> vec3<f32> {
+    let a = vec3f(0.4, 0.4, 0.4);
+    let b = vec3f(0.2, 0.2, 0.2);
+    let c = vec3f(3.5, 3.5, 3.5);
+    let d = vec3f(0.0, 0.0, 0.0);
+
+    return a + b*cos(6.28 * (c*v + d));
+}
+
+fn dotnoise(uv_in: vec3<f32>, res: f32) -> f32 {
+    var uv = uv_in;
+    var v: f32 = 0.0;
+
+    // WGSL requires a constant loop bound and uses 'var' for the index
+    for (var i: i32 = 0; i < 4; i = i + 1) {
+        // Note: 0.002 is promoted to f32, res is f32 already
+        uv = uv * rotationMatrix(vec3<f32>(fract(sin(uv / res * 0.002))));
+        v = v + dot(cos(uv * 20.0), sin(uv.yzx * 100.0));
+        uv += v*0.03;
+    }
+
+    return v / 50.0;
+}
+
+fn fbm_dot(x: vec3f) -> f32 {
+    let lunacricy = 2.0;
+    let dampening = 0.5;
+    var a = 1.0;
+    var t = 0.0;
+
+    for (var i: i32 = 0; i< 3; i = i + 1) {
+        t += abs(a*dotnoise(f32(i)  * lunacricy * x, 0.4));
+        a *= dampening;
+    }
+
+    return t;
+
+}
 // returning (distance, height)
 fn distance_to_closest_neighbor(uv: vec2<f32>) -> vec2<f32> {
     let x = quantize(uv.x, UV_STEPS) - uv.x;
@@ -121,7 +182,7 @@ fn distance_to_closest_neighbor(uv: vec2<f32>) -> vec2<f32> {
 }
 
 // height between -1.0..1.0
-fn water_color(block_height: f32, height: f32, uv: vec2<f32>) -> vec4<f32> {
+fn water_color(block_height: f32, height: f32, uv: vec2<f32>, world_pos: vec4f) -> vec4<f32> {
 
     var c = rgb(99, 115, 229);
     let depth_modifier = 1.0 + height;
@@ -137,8 +198,12 @@ fn water_color(block_height: f32, height: f32, uv: vec2<f32>) -> vec4<f32> {
         // return vec4<f32>(c, 1.0);
 }
 
-fn ground_color(block_height: f32, height: f32, uv: vec2<f32>) -> vec3<f32> {
-    return rgb(121, 115, 45);
+fn ground_color(block_height: f32, height: f32, uv: vec2<f32>, world_pos: vec4f) -> vec3<f32> {
+    let rock_color = color_space_rock(fbm_dot(vec3f(world_pos.xy, height)));
+    let sand_color = color_space_sand(fbm_dot(vec3f(world_pos.xy, height)));
+    let coast_fraction = abs(height - 0.5);
+    return mix(sand_color, rock_color, coast_fraction);
+    // return rgb(121, 115, 45);
 }
 
 
@@ -163,9 +228,9 @@ fn fragment(
     let block_height = h(mesh.uv);
     let local_height = bilinear_height(mesh.uv);
 
-    let water = water_color(block_height, local_height, mesh.uv);
+    let water = water_color(block_height, local_height, mesh.uv, mesh.world_position);
 
-    let ground = ground_color(block_height, local_height, mesh.uv);
+    let ground = ground_color(block_height, local_height, mesh.uv, mesh.world_position);
 
     var c: vec3<f32>;
     if block_height < 0.5 {
@@ -173,7 +238,7 @@ fn fragment(
     } else if block_height == 0.5 {
         c = vec3<f32>(0.5);
     } else {
-        c = vec3<f32>(0.0, 1.0, 0.0);
+        c = ground;
     }
 
     return vec4<f32>(c * abs(block_height), 1.0);

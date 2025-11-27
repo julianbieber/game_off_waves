@@ -13,6 +13,7 @@ use crate::{
         GameCollisionLayer, Health,
         movement::MovementController,
         player::{EnemiesKilled, Player, PlayerHealth},
+        upgrade::AvailableUpgrades,
     },
     screens::Screen,
 };
@@ -44,11 +45,13 @@ fn despawn_dead(
     enemies: Query<(Entity, &Health)>,
     mut commands: Commands,
     mut killed: ResMut<EnemiesKilled>,
+    mut shop: ResMut<AvailableUpgrades>,
 ) {
     for (e, h) in enemies {
-        if h.0 < 0 {
+        if h.0 <= 0 {
             commands.entity(e).despawn();
             killed.amount += 1;
+            shop.gold += 1;
         }
     }
 }
