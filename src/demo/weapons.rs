@@ -8,6 +8,7 @@ use bevy::{
 
 use crate::{
     demo::{Health, angle_between, enemy::Enemy, forward_vec, player::PlayerStats},
+    menus::Menu,
     screens::Screen,
 };
 
@@ -111,6 +112,8 @@ impl WeaponType {
                         Mesh2d(mesh),
                         MeshMaterial2d(material),
                         DespawnAfter(Timer::from_seconds(3.0, TimerMode::Once)),
+                        DespawnOnExit(Screen::Gameplay),
+                        DespawnOnEnter(Menu::Shop),
                     );
                     commands.spawn(b);
                 }
@@ -147,6 +150,8 @@ impl WeaponType {
                             Mesh2d(mesh),
                             MeshMaterial2d(material),
                             DespawnAfter(Timer::from_seconds(1.0, TimerMode::Once)),
+                            DespawnOnExit(Screen::Gameplay),
+                            DespawnOnEnter(Menu::Shop),
                         );
                         commands.spawn(b);
                     }
@@ -187,6 +192,8 @@ impl WeaponType {
                             Mesh2d(mesh),
                             MeshMaterial2d(material),
                             DespawnAfter(Timer::from_seconds(3.0, TimerMode::Once)),
+                            DespawnOnExit(Screen::Gameplay),
+                            DespawnOnEnter(Menu::Shop),
                         );
                         commands.spawn(b);
                     }

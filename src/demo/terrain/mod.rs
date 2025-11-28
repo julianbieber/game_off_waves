@@ -52,6 +52,7 @@ fn spawn_terrain(
 
     for spawner in terrain.spawners(Vec2::ZERO) {
         commands.spawn((
+            DespawnOnExit(Screen::Gameplay),
             Spawner {
                 timer: Timer::from_seconds(2.0, TimerMode::Repeating),
             },
@@ -64,10 +65,11 @@ fn spawn_terrain(
         Transform::from_translation(Vec3::ZERO),
         terrain,
         waves,
+        DespawnOnExit(Screen::Gameplay),
     ));
 
     for c in land_collider {
-        commands.spawn((c.0, c.1, RigidBody::Static));
+        commands.spawn((c.0, c.1, RigidBody::Static, DespawnOnExit(Screen::Gameplay)));
     }
 }
 
@@ -81,11 +83,6 @@ fn generate_chunk() -> TerrainChunk {
         for x in 0..SQUARE {
             let world_pos = Vec2::new(x as f32, y as f32);
             let height = noise.sample(world_pos);
-            // let height = if (y + x * TerrainChunk::SQUARE + 1) % 2 == 0 {
-            //     1.0
-            // } else {
-            //     0.0
-            // };
 
             t.set(x, y, height);
         }

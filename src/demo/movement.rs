@@ -21,6 +21,7 @@ use bevy::prelude::*;
 use crate::{
     AppSystems, PausableSystems,
     demo::{forward_vec, player::Player, terrain::waves::Waves},
+    screens::Screen,
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -29,7 +30,8 @@ pub(super) fn plugin(app: &mut App) {
         (apply_movement, rotate_forward, apply_waves)
             .chain()
             .in_set(AppSystems::Update)
-            .in_set(PausableSystems),
+            .in_set(PausableSystems)
+            .run_if(in_state(Screen::Gameplay)),
     );
 }
 

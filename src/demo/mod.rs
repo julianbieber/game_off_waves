@@ -30,7 +30,6 @@ pub struct Health(i32);
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins((
-        level::plugin,
         movement::plugin,
         player::plugin,
         terrain::TerrainPlugin,

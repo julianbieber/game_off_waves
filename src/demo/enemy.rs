@@ -9,12 +9,14 @@ use bevy::{
 };
 
 use crate::{
+    PausableSystems,
     demo::{
         GameCollisionLayer, Health,
         movement::MovementController,
         player::{EnemiesKilled, Player, PlayerHealth},
         upgrade::AvailableUpgrades,
     },
+    menus::Menu,
     screens::Screen,
 };
 
@@ -25,7 +27,12 @@ impl Plugin for EnemyPlugin {
         app.insert_resource(SpawnerConfig {
             remaining_in_wave: 10000,
         })
-        .add_systems(Update, update_time.run_if(in_state(Screen::Gameplay)))
+        .add_systems(
+            Update,
+            update_time
+                .in_set(PausableSystems)
+                .run_if(in_state(Screen::Gameplay)),
+        )
         .add_systems(
             Update,
             (
@@ -35,6 +42,7 @@ impl Plugin for EnemyPlugin {
                 despawn_dead,
                 enemies_hit_player,
             )
+                .in_set(PausableSystems)
                 .run_if(in_state(Screen::Gameplay)),
         )
         .add_plugins(Material2dPlugin::<EnemyMaterial>::default());
@@ -137,6 +145,8 @@ fn eval_spawners(
                 );
                 commands.spawn((
                     Enemy,
+                    DespawnOnEnter(Menu::Shop),
+                    DespawnOnExit(Screen::Gameplay),
                     Mesh2d(mesh),
                     MeshMaterial2d(material),
                     *transform,

@@ -56,7 +56,9 @@ pub(super) fn plugin(app: &mut App) {
             follow_cam
                 .in_set(AppSystems::Update)
                 .in_set(PausableSystems),
-            player_died,
+            player_died
+                .in_set(PausableSystems)
+                .run_if(in_state(Screen::Gameplay)),
         ),
     )
     .insert_resource(EnemiesKilled { amount: 0 })
