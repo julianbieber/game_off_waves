@@ -5,7 +5,7 @@ use crate::{
         player::{PlayerStats, StatIncreases},
         weapons::{WeaponSlots, WeaponType},
     },
-    screens::Screen,
+    menus::Menu,
     theme::widget::{button, label},
 };
 
@@ -20,7 +20,7 @@ pub struct AvailableUpgrades {
 
 impl Plugin for UpgradePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(Screen::Shop), setup_upgrade_ui);
+        app.add_systems(OnEnter(Menu::Shop), setup_upgrade_ui);
         app.add_systems(
             Update,
             (
@@ -41,7 +41,7 @@ fn setup_upgrade_ui(mut commands: Commands, upgrades: Res<AvailableUpgrades>, ti
     commands.spawn((
         block_root(),
         children![weapons_column(), stats_column(upgrades, time)],
-        DespawnOnExit(Screen::Shop),
+        DespawnOnExit(Menu::Shop),
     ));
 }
 

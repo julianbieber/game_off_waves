@@ -6,9 +6,10 @@
 use avian2d::prelude::PhysicsLayer;
 use bevy::{math::ops::atan2, prelude::*};
 
-use crate::demo::upgrade::UpgradePlugin;
+use crate::demo::{haven::HavenPlugin, upgrade::UpgradePlugin};
 
 pub mod enemy;
+pub mod haven;
 pub mod level;
 mod movement;
 pub mod player;
@@ -36,6 +37,7 @@ pub(super) fn plugin(app: &mut App) {
         enemy::EnemyPlugin,
         weapons::WeaponPlugin,
         UpgradePlugin,
+        HavenPlugin,
     ));
 }
 

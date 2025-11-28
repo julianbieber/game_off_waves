@@ -26,4 +26,5 @@ pub enum Menu {
     Credits,
     Settings,
     Pause,
+    Shop,
 }

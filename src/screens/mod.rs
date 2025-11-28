@@ -31,5 +31,4 @@ pub enum Screen {
     Loading,
     Gameplay,
     YouDied,
-    Shop,
 }
