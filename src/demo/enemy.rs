@@ -25,7 +25,9 @@ pub struct EnemyPlugin;
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(SpawnerConfig {
-            remaining_in_wave: 10000,
+            time_to_spawn: Timer::from_seconds(10.0, TimerMode::Repeating),
+            per_wave: 10,
+            one_time: 0,
         })
         .add_systems(
             Update,
@@ -103,13 +105,13 @@ impl Material2d for EnemyMaterial {
 }
 
 #[derive(Component)]
-pub struct Spawner {
-    pub timer: Timer,
-}
+pub struct Spawner {}
 
 #[derive(Resource)]
 pub struct SpawnerConfig {
-    pub remaining_in_wave: u32,
+    pub time_to_spawn: Timer,
+    pub per_wave: usize,
+    pub one_time: usize,
 }
 
 #[derive(Component)]
@@ -128,51 +130,72 @@ fn eval_spawners(
     mut spawners: Query<(&mut Spawner, &Transform)>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<EnemyMaterial>>,
-) {
-    if config.remaining_in_wave > 0 {
-        for (mut spawner, transform) in &mut spawners {
-            if config.remaining_in_wave == 0 {
-                break;
+    player_position: Query<&Transform, With<Player>>,
+) -> Result<(), BevyError> {
+    let player_position = player_position.single()?;
+    config.time_to_spawn.tick(time.delta());
+    let min_dist = 500.0 * 500.0;
+    let max_dist = 1000.0 * 1000.0;
+    if config.time_to_spawn.is_finished() {
+        let mut spawn_counter = 0;
+        for (_spawner, transform) in &mut spawners {
+            let dist = transform
+                .translation
+                .distance_squared(player_position.translation);
+            if dist > min_dist && dist < max_dist && spawn_counter < config.per_wave {
+                commands.spawn(enemy_bundle(transform, &mut meshes, &mut materials));
+                spawn_counter += 1;
             }
-
-            spawner.timer.tick(time.delta());
-            let mesh = meshes.add(Rectangle::new(100.0, 100.0));
-            let material = materials.add(EnemyMaterial { time: Vec4::ZERO });
-            if spawner.timer.is_finished() {
-                let collision = CollisionLayers::new(
-                    GameCollisionLayer::Enemy,
-                    [GameCollisionLayer::Terrain, GameCollisionLayer::Player],
-                );
-                commands.spawn((
-                    Enemy,
-                    DespawnOnEnter(Menu::Shop),
-                    DespawnOnExit(Screen::Gameplay),
-                    Mesh2d(mesh),
-                    MeshMaterial2d(material),
-                    *transform,
-                    Collider::rectangle(100.0, 100.0),
-                    RigidBody::Dynamic,
-                    MovementController {
-                        max_speed: 300.0,
-                        ..default()
-                    },
-                    Mass(10.0),
-                    AngularDamping(2.0),
-                    LinearDamping(0.2),
-                    collision,
-                    PositionRecording {
-                        timer: Timer::from_seconds(10.0, TimerMode::Repeating),
-                        position: transform.translation,
-                    },
-                    Health(100),
-                ));
-                config.remaining_in_wave -= 1;
-            }
-            if spawner.timer.is_finished() {
-                spawner.timer.reset();
+        }
+        config.one_time += config.per_wave - spawn_counter;
+    } else {
+        for (_spawner, transform) in &mut spawners {
+            let dist = transform
+                .translation
+                .distance_squared(player_position.translation);
+            if dist > min_dist && dist < max_dist && config.one_time > 0 {
+                commands.spawn(enemy_bundle(transform, &mut meshes, &mut materials));
+                config.one_time -= 1;
             }
         }
     }
+    Ok(())
+}
+
+fn enemy_bundle(
+    transform: &Transform,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<EnemyMaterial>,
+) -> impl Bundle {
+    let mesh = meshes.add(Rectangle::new(100.0, 100.0));
+    let material = materials.add(EnemyMaterial { time: Vec4::ZERO });
+    let collision = CollisionLayers::new(
+        GameCollisionLayer::Enemy,
+        [GameCollisionLayer::Terrain, GameCollisionLayer::Player],
+    );
+    (
+        Enemy,
+        DespawnOnEnter(Menu::Shop),
+        DespawnOnExit(Screen::Gameplay),
+        Mesh2d(mesh),
+        MeshMaterial2d(material),
+        *transform,
+        Collider::rectangle(100.0, 100.0),
+        RigidBody::Dynamic,
+        MovementController {
+            max_speed: 300.0,
+            ..default()
+        },
+        Mass(10.0),
+        AngularDamping(2.0),
+        LinearDamping(0.2),
+        collision,
+        PositionRecording {
+            timer: Timer::from_seconds(10.0, TimerMode::Repeating),
+            position: transform.translation,
+        },
+        Health(100),
+    )
 }
 
 fn remove_stuck_enemies(
@@ -187,7 +210,7 @@ fn remove_stuck_enemies(
             record.timer.reset();
             if record.position.distance_squared(transform.translation) < 1000.0 {
                 commands.entity(entity).despawn();
-                config.remaining_in_wave += 1;
+                config.one_time += 1;
             } else {
                 record.position = transform.translation;
             }

@@ -51,13 +51,7 @@ fn spawn_terrain(
     let land_collider = terrain.land_colliders(Vec2::ZERO);
 
     for spawner in terrain.spawners(Vec2::ZERO) {
-        commands.spawn((
-            DespawnOnExit(Screen::Gameplay),
-            Spawner {
-                timer: Timer::from_seconds(2.0, TimerMode::Repeating),
-            },
-            spawner,
-        ));
+        commands.spawn((DespawnOnExit(Screen::Gameplay), Spawner {}, spawner));
     }
     commands.spawn((
         Mesh2d(mesh),
