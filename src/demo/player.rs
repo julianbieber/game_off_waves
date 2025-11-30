@@ -17,7 +17,9 @@ use crate::{
         movement::MovementController,
         weapons::{WeaponSlots, WeaponType},
     },
+    menus::Menu,
     screens::Screen,
+    theme::widget::{label, ui_root},
 };
 
 #[derive(Component, Clone)]
@@ -59,8 +61,13 @@ pub(super) fn plugin(app: &mut App) {
             player_died
                 .in_set(PausableSystems)
                 .run_if(in_state(Screen::Gameplay)),
+            update_health_ui
+                .in_set(PausableSystems)
+                .run_if(in_state(Screen::Gameplay)),
         ),
     )
+    .add_systems(OnEnter(Screen::Gameplay), spawn_health_ui)
+    .add_systems(OnExit(Menu::Shop), spawn_health_ui)
     .insert_resource(EnemiesKilled { amount: 0 })
     .add_systems(Update, update_time.run_if(in_state(Screen::Gameplay)))
     .add_plugins(Material2dPlugin::<BoatMaterial>::default());
@@ -230,4 +237,30 @@ impl Material2d for BoatMaterial {
     fn alpha_mode(&self) -> bevy::sprite_render::AlphaMode2d {
         bevy::sprite_render::AlphaMode2d::Blend
     }
+}
+
+#[derive(Component)]
+struct HealthLabel;
+
+fn spawn_health_ui(mut commands: Commands) {
+    commands.spawn((
+        ui_root("Gameplay HUD"),
+        children![(HealthLabel, label(""))],
+        DespawnOnEnter(Menu::Shop),
+        (DespawnOnExit(Screen::Gameplay)),
+    ));
+}
+
+fn update_health_ui(
+    mut ui: Query<&mut Text, With<HealthLabel>>,
+    health: Query<&PlayerHealth>,
+) -> Result<(), BevyError> {
+    let health = health.single()?;
+    let mut ui = ui.single_mut()?;
+    let max = health._max;
+    let current = health.current;
+
+    ui.0 = format!("{current}/{max}");
+
+    Ok(())
 }

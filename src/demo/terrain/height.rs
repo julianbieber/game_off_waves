@@ -7,6 +7,8 @@ use bevy::{
     sprite_render::Material2d,
 };
 
+use crate::demo::Daytime;
+
 pub const CHUNK_SIZE_PIXELS: usize = 4096;
 
 pub const SQUARE: usize = 16;
@@ -138,10 +140,16 @@ pub fn update_time(
     time: Res<Time>,
     mut terrain_materials: ResMut<Assets<TerrainMaterial>>,
     terrain_chunks: Query<&MeshMaterial2d<TerrainMaterial>>,
+    day: Res<Daytime>,
 ) {
     for c in terrain_chunks.iter() {
         if let Some(m) = terrain_materials.get_mut(c.0.id()) {
-            m.time = Vec4::new(time.elapsed_secs(), 0.0, 0.0, 0.0);
+            m.time = Vec4::new(
+                time.elapsed_secs(),
+                day.until_night.remaining_secs(),
+                0.0,
+                0.0,
+            );
         }
     }
 }

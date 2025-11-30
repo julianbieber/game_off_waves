@@ -11,7 +11,7 @@ use bevy::{
 use crate::{
     PausableSystems,
     demo::{
-        GameCollisionLayer, Health,
+        Daytime, GameCollisionLayer, Health,
         movement::MovementController,
         player::{EnemiesKilled, Player, PlayerHealth},
         upgrade::AvailableUpgrades,
@@ -118,6 +118,9 @@ pub struct SpawnerConfig {
 pub struct Enemy;
 
 #[derive(Component)]
+pub struct EnemyDamage(i32);
+
+#[derive(Component)]
 struct PositionRecording {
     timer: Timer,
     position: Vec3,
@@ -131,11 +134,14 @@ fn eval_spawners(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<EnemyMaterial>>,
     player_position: Query<&Transform, With<Player>>,
+    day: Res<Daytime>,
 ) -> Result<(), BevyError> {
     let player_position = player_position.single()?;
     config.time_to_spawn.tick(time.delta());
     let min_dist = 500.0 * 500.0;
     let max_dist = 1000.0 * 1000.0;
+    let health = day_to_health(&day);
+    let damage = day_to_damage(&day);
     if config.time_to_spawn.is_finished() {
         let mut spawn_counter = 0;
         for (_spawner, transform) in &mut spawners {
@@ -143,7 +149,13 @@ fn eval_spawners(
                 .translation
                 .distance_squared(player_position.translation);
             if dist > min_dist && dist < max_dist && spawn_counter < config.per_wave {
-                commands.spawn(enemy_bundle(transform, &mut meshes, &mut materials));
+                commands.spawn(enemy_bundle(
+                    health,
+                    damage,
+                    transform,
+                    &mut meshes,
+                    &mut materials,
+                ));
                 spawn_counter += 1;
             }
         }
@@ -154,7 +166,13 @@ fn eval_spawners(
                 .translation
                 .distance_squared(player_position.translation);
             if dist > min_dist && dist < max_dist && config.one_time > 0 {
-                commands.spawn(enemy_bundle(transform, &mut meshes, &mut materials));
+                commands.spawn(enemy_bundle(
+                    health,
+                    damage,
+                    transform,
+                    &mut meshes,
+                    &mut materials,
+                ));
                 config.one_time -= 1;
             }
         }
@@ -162,7 +180,16 @@ fn eval_spawners(
     Ok(())
 }
 
+fn day_to_health(day: &Daytime) -> u32 {
+    day.day_counter * 20 + (day.until_night.elapsed_secs() * 0.1) as u32
+}
+fn day_to_damage(day: &Daytime) -> u32 {
+    (day.day_counter * 5) + 1
+}
+
 fn enemy_bundle(
+    health: u32,
+    damage: u32,
     transform: &Transform,
     meshes: &mut Assets<Mesh>,
     materials: &mut Assets<EnemyMaterial>,
@@ -194,7 +221,7 @@ fn enemy_bundle(
             timer: Timer::from_seconds(10.0, TimerMode::Repeating),
             position: transform.translation,
         },
-        Health(100),
+        (Health(health as i32), EnemyDamage(damage as i32)),
     )
 }
 
@@ -242,16 +269,16 @@ fn enemy_movement(
 
 fn enemies_hit_player(
     mut collisions: MessageReader<CollisionStart>,
-    enemies: Query<Entity, (With<Enemy>, Without<Player>)>,
+    enemies: Query<(Entity, &EnemyDamage), (With<Enemy>, Without<Player>)>,
     mut player: Query<&mut PlayerHealth, Without<Enemy>>,
     mut commands: Commands,
 ) {
     for collision in collisions.read() {
-        let _enemy = {
+        let enemy = {
             if let Some(enemy) = [collision.body1, collision.body2]
                 .iter()
                 .flatten()
-                .find(|e| enemies.contains(**e))
+                .find(|e| enemies.iter().any(|enemy| enemy.0 == **e))
             {
                 *enemy
             } else {
@@ -273,11 +300,13 @@ fn enemies_hit_player(
             }
         };
 
+        let enemy_damage = enemies.get(enemy).unwrap().1;
+
         // unwrap is safe due to the previous check
         let mut player = player.get_mut(player_entity).unwrap();
-        player.current -= 1;
+        player.current -= enemy_damage.0;
 
         dbg!(player.current);
-        commands.entity(_enemy).despawn();
+        commands.entity(enemy).despawn();
     }
 }
