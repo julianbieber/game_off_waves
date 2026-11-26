@@ -251,16 +251,9 @@ fn spawn_health_ui(mut commands: Commands) {
     ));
 }
 
-fn update_health_ui(
-    mut ui: Query<&mut Text, With<HealthLabel>>,
-    health: Query<&PlayerHealth>,
-) -> Result<(), BevyError> {
-    let health = health.single()?;
-    let mut ui = ui.single_mut()?;
+fn update_health_ui(mut ui: Single<&mut Text, With<HealthLabel>>, health: Single<&PlayerHealth>) {
     let max = health._max;
     let current = health.current;
 
     ui.0 = format!("{current}/{max}");
-
-    Ok(())
 }

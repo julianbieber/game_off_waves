@@ -27,7 +27,8 @@ impl Plugin for UpgradePlugin {
                 update_upgrade_text,
                 update_stat_button_text,
                 update_weapon_button_texts,
-            ),
+            )
+                .run_if(in_state(Menu::Shop)),
         );
         app.insert_resource(AvailableUpgrades {
             stats: 3,
@@ -181,9 +182,8 @@ pub fn stats_column(upgrades: Res<AvailableUpgrades>, time: Res<Time>) -> impl B
 
 fn update_stat_button_text(
     texts: Query<(&mut Text, &StatIncreases)>,
-    players: Query<&PlayerStats>,
-) -> Result<(), BevyError> {
-    let player = players.single()?;
+    player: Single<&PlayerStats>,
+) {
     let projectile_damage = player.projectile_damage_percentage;
     let projectile_rate = player.projectile_rate_percentage;
     let projectile_speed = player.projectile_speed_percentage;
@@ -206,8 +206,6 @@ fn update_stat_button_text(
 
         text.0 = stat_text;
     }
-
-    Ok(())
 }
 
 fn update_upgrade_text(
@@ -251,11 +249,9 @@ fn weapon_upgrade(
 
 fn update_weapon_button_texts(
     mut texts: Query<(&mut Text, &WeaponButtonMarker)>,
-    players: Query<&WeaponSlots>,
+    player: Single<&WeaponSlots>,
     shop: Res<AvailableUpgrades>,
-) -> Result<(), BevyError> {
-    let player = players.single()?;
-
+) {
     if let Some(available_in_shop) = &shop.current_shop {
         let s = weapon_string(available_in_shop);
         for (mut text, weapon_marker) in &mut texts {
@@ -292,8 +288,6 @@ fn update_weapon_button_texts(
             text.0 = "No weapon available".to_string();
         }
     }
-
-    Ok(())
 }
 
 fn weapon_string(w: &(WeaponType, u32)) -> String {
