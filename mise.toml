@@ -1,0 +1,33 @@
+# Developer tooling for this repo. `mise install` sets all of it up.
+#
+# The project's own Rust toolchain is not managed here: rustup installs and selects it
+# from `rust-toolchain.toml`, which editors and CI read as well.
+
+# Older releases ignore `install_env` on cargo tools, which builds bevy_lint with the
+# wrong toolchain.
+min_version = "2026.11.14"
+
+# The Bevy linter supports one Bevy version at a time and must be built and run with
+# its own nightly. When moving `bevy_lint_rev` (a bevy_cli commit or `lint-v*` tag
+# whose `bevy_lint/Cargo.toml` depends on the Bevy version used here), set
+# `bevy_lint_toolchain` to the `channel` in that commit's `rust-toolchain.toml`.
+[vars]
+bevy_lint_rev = "a46a621e72a4ef761f60865d1224a23bcac351d3"
+bevy_lint_toolchain = "nightly-2026-05-28"
+
+[tasks.bevy-lint-toolchain]
+description = "Install the nightly that bevy_lint is built and run with"
+run = "rustup toolchain install {{vars.bevy_lint_toolchain}} --profile minimal --component rustc-dev --component llvm-tools"
+
+# Only runs when `mise install` has something to install. With the linter already
+# installed (or restored from a CI cache) its toolchain is not checked: run the task.
+[hooks]
+preinstall = "mise run bevy-lint-toolchain"
+
+[tools]
+just = "1"
+
+# The Bevy CLI (`bevy run`, `bevy build web`).
+"cargo:https://github.com/TheBevyFlock/bevy_cli" = { version = "tag:cli-v0.1.0-alpha.2", crate = "bevy_cli" }
+
+"cargo:TheBevyFlock/bevy_cli" = { version = "rev:{{vars.bevy_lint_rev}}", crate = "bevy_lint", install_env = { RUSTUP_TOOLCHAIN = "{{vars.bevy_lint_toolchain}}" } }

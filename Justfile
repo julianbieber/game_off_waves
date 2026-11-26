@@ -38,18 +38,12 @@ clippy:
 	RUSTDOCFLAGS="{{RUSTDOCFLAGS_BASE}}" \
 	cargo clippy --locked --workspace --all-targets --profile ci --all-features
 
-# Bevy lints (requires bevy_lint on PATH)
+# Bevy lints (bevy_lint comes from `mise install`)
 bevy-lints:
 	@env \
 	RUSTFLAGS="{{RUSTFLAGS_BASE}}" \
 	RUSTDOCFLAGS="{{RUSTDOCFLAGS_BASE}}" \
 	bevy_lint --locked --workspace --all-targets --profile ci --all-features
-
-# Install Bevy linter via the Bevy CLI installer, then ensure bevy_lint exists
-bevy-lint-install:
-	@curl -sSfL https://raw.githubusercontent.com/TheBevyFlock/bevy_cli/main/install.sh | bash   # installs the CLI wrapper [web:2]
-	@bevy lint install v0.4.0 || true                                                             # pins CLI linter like CI [web:1]
-	@command -v bevy_lint >/dev/null 2>&1 || { echo "bevy_lint not on PATH; ensure installer completed."; exit 1; }
 
 # Tests with cranelift backend
 test:
