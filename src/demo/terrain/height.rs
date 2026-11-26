@@ -143,7 +143,7 @@ pub fn update_time(
     day: Res<Daytime>,
 ) {
     for c in terrain_chunks.iter() {
-        if let Some(m) = terrain_materials.get_mut(c.0.id()) {
+        if let Some(mut m) = terrain_materials.get_mut(c.0.id()) {
             m.time = Vec4::new(
                 time.elapsed_secs(),
                 day.until_night.remaining_secs(),

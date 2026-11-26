@@ -431,7 +431,7 @@ fn arrow_hit(
 }
 
 fn flamestrike_hits(
-    trigger: On<Insert, FlameStrike>,
+    trigger: On<Insert<FlameStrike>>,
     flamestrikes: Query<(&Transform, &FlameStrike)>,
     mut enemies: Query<(Entity, &Transform, &mut Health, Option<&mut Burning>), With<Enemy>>,
     mut commands: Commands,
@@ -476,7 +476,7 @@ fn update_time(
     boats: Query<(&MeshMaterial2d<WeaponMaterial>, Option<&Burning>)>,
 ) {
     for (material, burning) in boats.iter() {
-        if let Some(m) = materials.get_mut(material.0.id()) {
+        if let Some(mut m) = materials.get_mut(material.0.id()) {
             m.time.x += time.delta_secs();
             if let Some(burning) = burning {
                 m.time.z = burning.stacks as f32;

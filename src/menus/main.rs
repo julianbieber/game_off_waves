@@ -32,7 +32,7 @@ fn spawn_main_menu(mut commands: Commands) {
 }
 
 fn enter_loading_or_gameplay_screen(
-    _: On<Pointer<Click>>,
+    _: On<PointerClick>,
     resource_handles: Res<ResourceHandles>,
     mut next_screen: ResMut<NextState<Screen>>,
 ) {
@@ -43,15 +43,15 @@ fn enter_loading_or_gameplay_screen(
     }
 }
 
-fn open_settings_menu(_: On<Pointer<Click>>, mut next_menu: ResMut<NextState<Menu>>) {
+fn open_settings_menu(_: On<PointerClick>, mut next_menu: ResMut<NextState<Menu>>) {
     next_menu.set(Menu::Settings);
 }
 
-fn open_credits_menu(_: On<Pointer<Click>>, mut next_menu: ResMut<NextState<Menu>>) {
+fn open_credits_menu(_: On<PointerClick>, mut next_menu: ResMut<NextState<Menu>>) {
     next_menu.set(Menu::Credits);
 }
 
 #[cfg(not(target_family = "wasm"))]
-fn exit_app(_: On<Pointer<Click>>, mut app_exit: MessageWriter<AppExit>) {
+fn exit_app(_: On<PointerClick>, mut app_exit: MessageWriter<AppExit>) {
     app_exit.write(AppExit::Success);
 }

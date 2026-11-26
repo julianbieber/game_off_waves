@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{picking::hover::Hovered, prelude::*, ui::Pressed, ui_widgets::Button};
 
 use crate::{asset_tracking::LoadResource, audio::sound_effect};
 
@@ -10,11 +10,11 @@ pub(super) fn plugin(app: &mut App) {
     app.add_observer(play_on_click_sound_effect);
 }
 
-/// Palette for widget interactions. Add this to an entity that supports
-/// [`Interaction`]s, such as a button, to change its [`BackgroundColor`] based
-/// on the current interaction state.
+/// Palette for widget interactions. Add this to a [`Button`] to change its
+/// [`BackgroundColor`] based on whether it is hovered or pressed.
 #[derive(Component, Debug, Reflect)]
 #[reflect(Component)]
+#[require(Hovered)]
 pub struct InteractionPalette {
     pub none: Color,
     pub hovered: Color,
@@ -22,18 +22,22 @@ pub struct InteractionPalette {
 }
 
 fn apply_interaction_palette(
-    mut palette_query: Query<
-        (&Interaction, &InteractionPalette, &mut BackgroundColor),
-        Changed<Interaction>,
-    >,
+    mut palette_query: Query<(
+        &Hovered,
+        Has<Pressed>,
+        &InteractionPalette,
+        &mut BackgroundColor,
+    )>,
 ) {
-    for (interaction, palette, mut background) in &mut palette_query {
-        *background = match interaction {
-            Interaction::None => palette.none,
-            Interaction::Hovered => palette.hovered,
-            Interaction::Pressed => palette.pressed,
-        }
-        .into();
+    for (hovered, pressed, palette, mut background) in &mut palette_query {
+        let color = if pressed {
+            palette.pressed
+        } else if hovered.get() {
+            palette.hovered
+        } else {
+            palette.none
+        };
+        background.set_if_neq(color.into());
     }
 }
 
@@ -57,10 +61,10 @@ impl FromWorld for InteractionAssets {
 }
 
 fn play_on_hover_sound_effect(
-    trigger: On<Pointer<Over>>,
+    trigger: On<PointerOver>,
     mut commands: Commands,
     interaction_assets: Option<Res<InteractionAssets>>,
-    interaction_query: Query<(), With<Interaction>>,
+    interaction_query: Query<(), With<Button>>,
 ) {
     let Some(interaction_assets) = interaction_assets else {
         return;
@@ -72,10 +76,10 @@ fn play_on_hover_sound_effect(
 }
 
 fn play_on_click_sound_effect(
-    trigger: On<Pointer<Click>>,
+    trigger: On<PointerClick>,
     mut commands: Commands,
     interaction_assets: Option<Res<InteractionAssets>>,
-    interaction_query: Query<(), With<Interaction>>,
+    interaction_query: Query<(), With<Button>>,
 ) {
     let Some(interaction_assets) = interaction_assets else {
         return;

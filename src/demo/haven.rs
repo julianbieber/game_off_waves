@@ -35,7 +35,7 @@ fn update_time(
     boats: Query<&MeshMaterial2d<HavenMaterial>>,
 ) {
     for c in boats.iter() {
-        if let Some(m) = materials.get_mut(c.0.id()) {
+        if let Some(mut m) = materials.get_mut(c.0.id()) {
             m.time = Vec4::new(time.elapsed_secs(), 0.0, 0.0, 0.0);
         }
     }

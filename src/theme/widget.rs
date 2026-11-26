@@ -3,8 +3,9 @@
 use std::borrow::Cow;
 
 use bevy::{
-    ecs::{spawn::SpawnWith, system::IntoObserverSystem},
+    ecs::{event::EventPattern, spawn::SpawnWith, system::IntoObserverSystem},
     prelude::*,
+    ui_widgets::Button,
 };
 
 use crate::theme::{interaction::InteractionPalette, palette::*};
@@ -49,43 +50,39 @@ pub fn label(text: impl Into<String>) -> impl Bundle {
 }
 
 /// A large rounded button with text and an action defined as an [`Observer`].
-pub fn button<E, B, M, I>(
+pub fn button<E, M, I>(
     text: impl Into<String>,
     action: I,
     marker: impl Component + Clone,
 ) -> impl Bundle
 where
-    E: EntityEvent,
-    B: Bundle,
-    I: IntoObserverSystem<E, B, M>,
+    E: EventPattern<Event: EntityEvent>,
+    I: IntoObserverSystem<E, M>,
 {
     button_base(
         text,
         action,
-        (
-            Node {
-                width: px(380),
-                height: px(80),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            BorderRadius::MAX,
-        ),
+        Node {
+            width: px(380),
+            height: px(80),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            border_radius: BorderRadius::MAX,
+            ..default()
+        },
         marker,
     )
 }
 
 /// A small square button with text and an action defined as an [`Observer`].
-pub fn button_small<E, B, M, I>(
+pub fn button_small<E, M, I>(
     text: impl Into<String>,
     action: I,
     marker: impl Component + Clone,
 ) -> impl Bundle
 where
-    E: EntityEvent,
-    B: Bundle,
-    I: IntoObserverSystem<E, B, M>,
+    E: EventPattern<Event: EntityEvent>,
+    I: IntoObserverSystem<E, M>,
 {
     button_base(
         text,
@@ -102,16 +99,15 @@ where
 }
 
 /// A simple button with text and an action defined as an [`Observer`]. The button's layout is provided by `button_bundle`.
-fn button_base<E, B, M, I>(
+fn button_base<E, M, I>(
     text: impl Into<String>,
     action: I,
     button_bundle: impl Bundle,
     marker: impl Component + Clone,
 ) -> impl Bundle
 where
-    E: EntityEvent,
-    B: Bundle,
-    I: IntoObserverSystem<E, B, M>,
+    E: EventPattern<Event: EntityEvent>,
+    I: IntoObserverSystem<E, M>,
 {
     let text = text.into();
     let action = IntoObserverSystem::into_system(action);

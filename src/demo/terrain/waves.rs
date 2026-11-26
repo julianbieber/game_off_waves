@@ -80,7 +80,7 @@ impl Waves {
     pub fn wave_height(&self, p: Vec2, t: f32) -> (Vec2, f32, bool) {
         let index = world_2_chunk(p);
         let dir = self.get(index.0, index.1);
-        let dir = Vec2::new(dir.x as f32, dir.y as f32).normalize();
+        let dir = dir.normalize();
 
         let v = (p * 0.05).dot(dir);
 
