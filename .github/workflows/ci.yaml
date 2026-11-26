@@ -110,9 +110,13 @@ jobs:
 
       - name: Install bevy_lint's toolchain
         run: mise run bevy-lint-toolchain
+        env:
+          MISE_TASK_RUN_AUTO_INSTALL: false
 
       - name: Install bevy_lint (pinned in mise.toml)
         run: mise install cargo:TheBevyFlock/bevy_cli
+        env:
+          RUSTFLAGS: ""
 
       - name: Restore Rust cache
         id: cache
