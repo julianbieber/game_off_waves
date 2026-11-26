@@ -221,7 +221,7 @@ fn update_upgrade_text(
 }
 
 fn weapon_upgrade(
-    click: On<Pointer<Click>>,
+    click: On<PointerClick>,
     mut players: Query<&mut WeaponSlots>,
     mut upgrades: ResMut<AvailableUpgrades>,
     buttons: Query<&WeaponButtonMarker>,
@@ -306,7 +306,7 @@ fn weapon_string(w: &(WeaponType, u32)) -> String {
 }
 
 fn stat_increase(
-    click: On<Pointer<Click>>,
+    click: On<PointerClick>,
     mut players: Query<&mut PlayerStats>,
     mut upgrades: ResMut<AvailableUpgrades>,
     source_button_stat: Query<&StatIncreases>,
