@@ -22,7 +22,7 @@ run = "rustup toolchain install {{vars.bevy_lint_toolchain}} --profile minimal -
 # Runs only for a plain `mise install` that has something to install, not for
 # `mise install <tool>` nor when everything is already there: run the task then.
 [hooks]
-preinstall = "mise run bevy-lint-toolchain"
+preinstall = "MISE_TASK_RUN_AUTO_INSTALL=false mise run bevy-lint-toolchain"
 
 [tools]
 just = "1"
