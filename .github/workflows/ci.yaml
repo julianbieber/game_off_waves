@@ -102,11 +102,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Rust toolchain (plus bevy_lint)
-        uses: TheBevyFlock/bevy_cli/bevy_lint@lint-v0.4.0
+      - name: Install bevy_lint (pinned in mise.toml)
+        uses: jdx/mise-action@v5.3.0
         with:
-          cache: true
-          save-cache-if: ${{ github.ref == 'refs/heads/main' }}
+          version: 2026.11.14
+          install_args: cargo:TheBevyFlock/bevy_cli
+
+      - name: Install bevy_lint's toolchain
+        run: mise run bevy-lint-toolchain
 
       - name: Restore Rust cache
         id: cache
