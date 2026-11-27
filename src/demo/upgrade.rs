@@ -1,6 +1,10 @@
+//! The shop that opens at night: kill gold and stat points are spent here, and
+//! "Next day" leaves it.
+
 use bevy::prelude::*;
 
 use crate::{
+    NoMarker,
     demo::{
         player::{PlayerStats, StatIncreases},
         weapons::{WeaponSlots, WeaponType},
@@ -125,6 +129,10 @@ pub fn weapons_column() -> impl Bundle {
     )
 }
 
+fn leave_shop(_: On<PointerClick>, mut next_menu: ResMut<NextState<Menu>>) {
+    next_menu.set(Menu::None);
+}
+
 fn prng(time: f32) -> u8 {
     ((time * 3_136.234_1).sin().fract() * 10.0) as u8
 }
@@ -176,6 +184,7 @@ pub fn stats_column(upgrades: Res<AvailableUpgrades>, time: Res<Time>) -> impl B
                 stat_increase,
                 rng_to_stat(prng(time.elapsed_secs() + 0.3))
             ),
+            button("Next day", leave_shop, NoMarker),
         ],
     )
 }
