@@ -7,7 +7,7 @@ use crate::{
     NoMarker,
     demo::{
         player::{PlayerStats, StatIncreases},
-        weapons::{WeaponSlots, WeaponType},
+        weapons::{Weapon, WeaponSlots, WeaponType},
     },
     menus::Menu,
     theme::widget::{button, label},
@@ -19,7 +19,7 @@ pub struct UpgradePlugin;
 pub struct AvailableUpgrades {
     pub stats: u32,
     pub gold: u32,
-    pub current_shop: Option<(WeaponType, u32)>,
+    pub current_shop: Option<Weapon>,
 }
 
 impl Plugin for UpgradePlugin {
@@ -283,9 +283,9 @@ fn update_weapon_button_texts(
     }
 }
 
-fn weapon_string(w: &(WeaponType, u32)) -> String {
-    let lvl = w.1;
-    match w.0 {
+fn weapon_string(w: &Weapon) -> String {
+    let lvl = w.level;
+    match w.kind {
         WeaponType::Canon { .. } => format!("Canon lvl {lvl}"),
         WeaponType::FireMage { .. } => format!("Canon lvl {lvl}"),
         WeaponType::Archer { .. } => format!("Canon lvl {lvl}"),
