@@ -1,3 +1,5 @@
+//! The ship's weapons and the damage they deal to enemies.
+
 use std::time::Duration;
 
 use bevy::{
@@ -40,20 +42,20 @@ pub enum WeaponType {
 }
 
 impl WeaponType {
-    pub fn default_cannon(level: u32) -> (WeaponType, u32) {
-        (
-            WeaponType::Canon {
+    pub fn default_cannon(level: u32) -> Weapon {
+        Weapon {
+            kind: WeaponType::Canon {
                 cooldown: Timer::from_seconds(3.0, TimerMode::Repeating),
                 damage: 30.0 + (level as f32) * 5.0,
                 base_cool_down: 3.0,
             },
             level,
-        )
+        }
     }
 
-    pub fn default_fire_mage(level: u32) -> (WeaponType, u32) {
-        (
-            WeaponType::FireMage {
+    pub fn default_fire_mage(level: u32) -> Weapon {
+        Weapon {
+            kind: WeaponType::FireMage {
                 cooldown: Timer::from_seconds(2.0, TimerMode::Repeating),
                 direct_damage: 10.0 + (level as f32) * 1.0,
                 burning_stacks: level as i32,
@@ -62,11 +64,11 @@ impl WeaponType {
                 base_cool_down: 2.0,
             },
             level,
-        )
+        }
     }
-    pub fn default_archer(level: u32) -> (WeaponType, u32) {
-        (
-            WeaponType::Archer {
+    pub fn default_archer(level: u32) -> Weapon {
+        Weapon {
+            kind: WeaponType::Archer {
                 cooldown: Timer::from_seconds(1.0, TimerMode::Repeating),
                 damage: 10.0,
                 range: 400.0 + (level as f32) * 30.0,
@@ -74,7 +76,7 @@ impl WeaponType {
                 base_cool_down: 1.0,
             },
             level,
-        )
+        }
     }
 
     /// This function does targetting and timer eval
@@ -233,11 +235,18 @@ pub struct Arrow {
 #[derive(Component)]
 pub struct DespawnAfter(Timer);
 
+#[derive(Clone)]
+pub struct Weapon {
+    pub kind: WeaponType,
+    pub level: u32,
+}
+
+/// The weapons mounted on the ship; each fires from its slot.
 #[derive(Component)]
 pub struct WeaponSlots {
-    pub left: [Option<(WeaponType, u32)>; 3],
-    pub right: [Option<(WeaponType, u32)>; 3],
-    pub front: Option<(WeaponType, u32)>,
+    pub left: [Option<Weapon>; 3],
+    pub right: [Option<Weapon>; 3],
+    pub front: Option<Weapon>,
 }
 
 impl Plugin for WeaponPlugin {
@@ -276,7 +285,7 @@ fn eval_weapons(
         for (i, left_slot) in weapon_holder.left.iter_mut().enumerate() {
             if let Some(left_slot) = left_slot {
                 let weapon_transform = left_weapon_transform(transform, forward, angle, i);
-                left_slot.0.eval(
+                left_slot.kind.eval(
                     &mut commands,
                     &time,
                     weapon_transform,
@@ -290,7 +299,7 @@ fn eval_weapons(
         for (i, right_slot) in weapon_holder.right.iter_mut().enumerate() {
             if let Some(right_slot) = right_slot {
                 let weapon_transform = right_weapon_transform(transform, forward, angle, i);
-                right_slot.0.eval(
+                right_slot.kind.eval(
                     &mut commands,
                     &time,
                     weapon_transform,
@@ -311,7 +320,7 @@ fn eval_weapons(
                         angle - std::f32::consts::FRAC_PI_2,
                     ));
 
-            front.0.eval(
+            front.kind.eval(
                 &mut commands,
                 &time,
                 weapon_transform,

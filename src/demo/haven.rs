@@ -5,7 +5,7 @@ use bevy::{
 };
 
 use crate::{
-    demo::{terrain::height::TerrainChunk, weapons::WeaponType},
+    demo::{terrain::height::TerrainChunk, weapons::Weapon},
     screens::Screen,
 };
 
@@ -21,7 +21,7 @@ impl Plugin for HavenPlugin {
 #[allow(dead_code)]
 #[derive(Component)]
 pub struct Haven {
-    available: fn(u32) -> (WeaponType, u32),
+    available: fn(u32) -> Weapon,
     default_level: u32,
     cost: i32,
 }
