@@ -1,9 +1,9 @@
-//! Helper functions for creating common widgets.
+//! Scenes for the common widgets every screen and menu is built from.
 
 use std::borrow::Cow;
 
 use bevy::{
-    ecs::{event::EventPattern, spawn::SpawnWith, system::IntoObserverSystem},
+    ecs::{event::EventPattern, system::IntoObserverSystem},
     prelude::*,
     ui_widgets::Button,
 };
@@ -11,9 +11,10 @@ use bevy::{
 use crate::theme::{interaction::InteractionPalette, palette::*};
 
 /// A root UI node that fills the window and centers its content.
-pub fn ui_root(name: impl Into<Cow<'static, str>>) -> impl Bundle {
-    (
-        Name::new(name),
+pub fn ui_root(name: impl Into<Cow<'static, str>>) -> impl Scene {
+    let name = Name::new(name);
+    bsn! {
+        ~{name}
         Node {
             position_type: PositionType::Absolute,
             width: percent(100),
@@ -22,42 +23,44 @@ pub fn ui_root(name: impl Into<Cow<'static, str>>) -> impl Bundle {
             justify_content: JustifyContent::Center,
             flex_direction: FlexDirection::Column,
             row_gap: px(20),
-            ..default()
-        },
-        // Don't block picking events for other UI roots.
-        Pickable::IGNORE,
-    )
+        }
+        ~{Pickable::IGNORE}
+    }
 }
 
 /// A simple header label. Bigger than [`label`].
-pub fn header(text: impl Into<String>) -> impl Bundle {
-    (
-        Name::new("Header"),
-        Text(text.into()),
-        TextFont::from_font_size(40.0),
-        TextColor(HEADER_TEXT),
-    )
+pub fn header(text: impl Into<String>) -> impl Scene {
+    let text = Text(text.into());
+    bsn! {
+        #Header
+        ~{text}
+        TextFont { font_size: FontSize::Px(40.0) }
+        TextColor(HEADER_TEXT)
+    }
 }
 
 /// A simple text label.
-pub fn label(text: impl Into<String>) -> impl Bundle {
-    (
-        Name::new("Label"),
-        Text(text.into()),
-        TextFont::from_font_size(24.0),
-        TextColor(LABEL_TEXT),
-    )
+pub fn label(text: impl Into<String>) -> impl Scene {
+    let text = Text(text.into());
+    bsn! {
+        #Label
+        ~{text}
+        TextFont { font_size: FontSize::Px(24.0) }
+        TextColor(LABEL_TEXT)
+    }
 }
 
 /// A large rounded button with text and an action defined as an [`Observer`].
+/// `marker` goes on both the button and its text.
 pub fn button<E, M, I>(
     text: impl Into<String>,
     action: I,
-    marker: impl Component + Clone,
-) -> impl Bundle
+    marker: impl Component + Clone + Unpin,
+) -> impl Scene
 where
     E: EventPattern<Event: EntityEvent>,
-    I: IntoObserverSystem<E, M>,
+    I: IntoObserverSystem<E, M> + Clone + Send + Sync,
+    M: 'static,
 {
     button_base(
         text,
@@ -75,14 +78,16 @@ where
 }
 
 /// A small square button with text and an action defined as an [`Observer`].
+/// `marker` goes on both the button and its text.
 pub fn button_small<E, M, I>(
     text: impl Into<String>,
     action: I,
-    marker: impl Component + Clone,
-) -> impl Bundle
+    marker: impl Component + Clone + Unpin,
+) -> impl Scene
 where
     E: EventPattern<Event: EntityEvent>,
-    I: IntoObserverSystem<E, M>,
+    I: IntoObserverSystem<E, M> + Clone + Send + Sync,
+    M: 'static,
 {
     button_base(
         text,
@@ -98,46 +103,42 @@ where
     )
 }
 
-/// A simple button with text and an action defined as an [`Observer`]. The button's layout is provided by `button_bundle`.
 fn button_base<E, M, I>(
     text: impl Into<String>,
     action: I,
-    button_bundle: impl Bundle,
-    marker: impl Component + Clone,
-) -> impl Bundle
+    layout: Node,
+    marker: impl Component + Clone + Unpin,
+) -> impl Scene
 where
     E: EventPattern<Event: EntityEvent>,
-    I: IntoObserverSystem<E, M>,
+    I: IntoObserverSystem<E, M> + Clone + Send + Sync,
+    M: 'static,
 {
-    let text = text.into();
-    let action = IntoObserverSystem::into_system(action);
-    (
-        Name::new("Button"),
-        Node::default(),
-        Children::spawn(SpawnWith(|parent: &mut ChildSpawner| {
-            parent
-                .spawn((
-                    Name::new("Button Inner"),
-                    Button,
-                    BackgroundColor(BUTTON_BACKGROUND),
-                    InteractionPalette {
-                        none: BUTTON_BACKGROUND,
-                        hovered: BUTTON_HOVERED_BACKGROUND,
-                        pressed: BUTTON_PRESSED_BACKGROUND,
-                    },
-                    marker.clone(),
-                    children![(
-                        Name::new("Button Text"),
-                        Text(text),
-                        TextFont::from_font_size(40.0),
-                        TextColor(BUTTON_TEXT),
-                        // Don't bubble picking events from the text up to the button.
-                        Pickable::IGNORE,
-                        marker
-                    )],
-                ))
-                .insert(button_bundle)
-                .observe(action);
-        })),
-    )
+    let text = Text(text.into());
+    let text_marker = marker.clone();
+    bsn! {
+        #Button
+        Node
+        Children [
+            ~{Name::new("Button Inner")}
+            Button
+            BackgroundColor(BUTTON_BACKGROUND)
+            InteractionPalette {
+                none: BUTTON_BACKGROUND,
+                hovered: BUTTON_HOVERED_BACKGROUND,
+                pressed: BUTTON_PRESSED_BACKGROUND,
+            }
+            ~{marker}
+            ~{layout}
+            on(action)
+            Children [
+                ~{Name::new("Button Text")}
+                ~{text}
+                TextFont { font_size: FontSize::Px(40.0) }
+                TextColor(BUTTON_TEXT)
+                ~{Pickable::IGNORE}
+                ~{text_marker}
+            ]
+        ]
+    }
 }

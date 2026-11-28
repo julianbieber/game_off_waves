@@ -239,16 +239,19 @@ impl Material2d for BoatMaterial {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Clone, Default)]
 struct HealthLabel;
 
 fn spawn_health_ui(mut commands: Commands) {
-    commands.spawn((
-        ui_root("Gameplay HUD"),
-        children![(HealthLabel, label(""))],
-        DespawnOnEnter(Menu::Shop),
-        (DespawnOnExit(Screen::Gameplay)),
-    ));
+    commands.spawn_scene(bsn! {
+        @ui_root("Gameplay HUD")
+        ~{DespawnOnEnter(Menu::Shop)}
+        ~{DespawnOnExit(Screen::Gameplay)}
+        Children [
+            HealthLabel
+            @label("")
+        ]
+    });
 }
 
 fn update_health_ui(mut ui: Single<&mut Text, With<HealthLabel>>, health: Single<&PlayerHealth>) {

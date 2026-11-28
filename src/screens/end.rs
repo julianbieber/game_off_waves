@@ -1,3 +1,5 @@
+//! The screen shown when the player dies, with the run's score.
+
 use bevy::prelude::*;
 
 use crate::{demo::player::EnemiesKilled, screens::Screen, theme::widget};
@@ -12,9 +14,9 @@ impl Plugin for EndPlugin {
 
 fn spawn_end_screen(mut commands: Commands, killed: Res<EnemiesKilled>) {
     let killed = killed.amount;
-    commands.spawn((
-        widget::ui_root("End Screen"),
-        DespawnOnExit(Screen::YouDied),
-        children![widget::label(format!("Score: {killed}"))],
-    ));
+    commands.spawn_scene(bsn! {
+        @widget::ui_root("End Screen")
+        ~{DespawnOnExit(Screen::YouDied)}
+        Children [ @widget::label(format!("Score: {killed}")) ]
+    });
 }

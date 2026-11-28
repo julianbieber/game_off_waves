@@ -11,24 +11,36 @@ pub(super) fn plugin(app: &mut App) {
 }
 
 fn spawn_main_menu(mut commands: Commands) {
-    commands.spawn((
-        widget::ui_root("Main Menu"),
-        GlobalZIndex(2),
-        DespawnOnExit(Menu::Main),
-        #[cfg(not(target_family = "wasm"))]
-        children![
-            widget::button("Play", enter_loading_or_gameplay_screen, NoMarker),
-            widget::button("Settings", open_settings_menu, NoMarker),
-            widget::button("Credits", open_credits_menu, NoMarker),
-            widget::button("Exit", exit_app, NoMarker),
-        ],
-        #[cfg(target_family = "wasm")]
-        children![
-            widget::button("Play", enter_loading_or_gameplay_screen, NoMarker),
-            widget::button("Settings", open_settings_menu, NoMarker),
-            widget::button("Credits", open_credits_menu, NoMarker),
-        ],
-    ));
+    commands.spawn_scene(bsn! {
+        @widget::ui_root("Main Menu")
+        GlobalZIndex(2)
+        ~{DespawnOnExit(Menu::Main)}
+        Children [ {main_menu_buttons()} ]
+    });
+}
+
+#[cfg(not(target_family = "wasm"))]
+fn main_menu_buttons() -> impl SceneList {
+    bsn_list! {
+        @widget::button("Play", enter_loading_or_gameplay_screen, NoMarker)
+        --
+        @widget::button("Settings", open_settings_menu, NoMarker)
+        --
+        @widget::button("Credits", open_credits_menu, NoMarker)
+        --
+        @widget::button("Exit", exit_app, NoMarker)
+    }
+}
+
+#[cfg(target_family = "wasm")]
+fn main_menu_buttons() -> impl SceneList {
+    bsn_list! {
+        @widget::button("Play", enter_loading_or_gameplay_screen, NoMarker)
+        --
+        @widget::button("Settings", open_settings_menu, NoMarker)
+        --
+        @widget::button("Credits", open_credits_menu, NoMarker)
+    }
 }
 
 fn enter_loading_or_gameplay_screen(
