@@ -79,6 +79,14 @@ impl WeaponType {
         }
     }
 
+    pub fn name(&self) -> &'static str {
+        match self {
+            WeaponType::Canon { .. } => "Canon",
+            WeaponType::FireMage { .. } => "Fire mage",
+            WeaponType::Archer { .. } => "Archer",
+        }
+    }
+
     /// This function does targetting and timer eval
     /// therefore it returns the position (and orientation of where it appears)
     /// The user transform tells us, where the user is positiond and oriented
@@ -241,12 +249,65 @@ pub struct Weapon {
     pub level: u32,
 }
 
+/// One of the ship's seven weapon places. `Left` and `Right` take an index
+/// below 3; a larger one panics when the slot is accessed.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Slot {
+    Front,
+    Left(usize),
+    Right(usize),
+}
+
+#[cfg(test)]
+impl Slot {
+    pub const ALL: [Slot; 7] = [
+        Slot::Front,
+        Slot::Left(0),
+        Slot::Left(1),
+        Slot::Left(2),
+        Slot::Right(0),
+        Slot::Right(1),
+        Slot::Right(2),
+    ];
+}
+
+/// Weapons the ship carries but has not mounted; they do not fire.
+#[derive(Component, Default)]
+pub struct Hold(pub Vec<Weapon>);
+
 /// The weapons mounted on the ship; each fires from its slot.
 #[derive(Component)]
 pub struct WeaponSlots {
     pub left: [Option<Weapon>; 3],
     pub right: [Option<Weapon>; 3],
     pub front: Option<Weapon>,
+}
+
+impl WeaponSlots {
+    pub fn get(&self, slot: Slot) -> Option<&Weapon> {
+        match slot {
+            Slot::Front => self.front.as_ref(),
+            Slot::Left(i) => self.left[i].as_ref(),
+            Slot::Right(i) => self.right[i].as_ref(),
+        }
+    }
+
+    pub fn take(&mut self, slot: Slot) -> Option<Weapon> {
+        self.place(slot).take()
+    }
+
+    /// Mounts `weapon` in `slot` and returns the weapon it displaced.
+    pub fn put(&mut self, slot: Slot, weapon: Weapon) -> Option<Weapon> {
+        self.place(slot).replace(weapon)
+    }
+
+    fn place(&mut self, slot: Slot) -> &mut Option<Weapon> {
+        match slot {
+            Slot::Front => &mut self.front,
+            Slot::Left(i) => &mut self.left[i],
+            Slot::Right(i) => &mut self.right[i],
+        }
+    }
 }
 
 impl Plugin for WeaponPlugin {
@@ -528,7 +589,64 @@ fn point_at(start: &Transform, target: Vec3) -> Transform {
 mod test {
     use bevy::{math::Vec3, transform::components::Transform};
 
-    use crate::demo::{forward_vec, weapons::point_at};
+    use crate::demo::{
+        forward_vec,
+        weapons::{Slot, WeaponSlots, WeaponType, point_at},
+    };
+
+    fn empty_slots() -> WeaponSlots {
+        WeaponSlots {
+            left: [None, None, None],
+            right: [None, None, None],
+            front: None,
+        }
+    }
+
+    #[test]
+    fn put_into_an_empty_slot_displaces_nothing() {
+        let mut slots = empty_slots();
+        assert!(
+            slots
+                .put(Slot::Left(1), WeaponType::default_archer(3))
+                .is_none()
+        );
+        assert_eq!(slots.get(Slot::Left(1)).unwrap().level, 3);
+        assert!(slots.get(Slot::Right(1)).is_none());
+    }
+
+    #[test]
+    fn put_into_an_occupied_slot_returns_the_old_weapon() {
+        let mut slots = empty_slots();
+        slots.put(Slot::Front, WeaponType::default_cannon(1));
+        let old = slots
+            .put(Slot::Front, WeaponType::default_archer(2))
+            .unwrap();
+        assert_eq!(old.level, 1);
+        assert_eq!(slots.get(Slot::Front).unwrap().level, 2);
+    }
+
+    #[test]
+    fn take_empties_the_slot() {
+        let mut slots = empty_slots();
+        slots.put(Slot::Right(2), WeaponType::default_fire_mage(4));
+        assert_eq!(slots.take(Slot::Right(2)).unwrap().level, 4);
+        assert!(slots.get(Slot::Right(2)).is_none());
+    }
+
+    #[test]
+    fn every_slot_is_addressable_once() {
+        let mut slots = empty_slots();
+        for (level, slot) in Slot::ALL.into_iter().enumerate() {
+            assert!(
+                slots
+                    .put(slot, WeaponType::default_archer(level as u32))
+                    .is_none()
+            );
+        }
+        for (level, slot) in Slot::ALL.into_iter().enumerate() {
+            assert_eq!(slots.get(slot).unwrap().level, level as u32);
+        }
+    }
 
     #[test]
     fn point_at_test() {

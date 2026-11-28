@@ -15,7 +15,7 @@ use crate::{
     demo::{
         GameCollisionLayer,
         movement::MovementController,
-        weapons::{WeaponSlots, WeaponType},
+        weapons::{Hold, WeaponSlots, WeaponType},
     },
     menus::Menu,
     screens::Screen,
@@ -138,6 +138,7 @@ pub fn player(
         },
         stats,
         CollisionEventsEnabled,
+        Hold::default(),
     )
 }
 
