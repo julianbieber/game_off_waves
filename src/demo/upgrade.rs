@@ -43,27 +43,31 @@ impl Plugin for UpgradePlugin {
 }
 
 fn setup_upgrade_ui(mut commands: Commands, upgrades: Res<AvailableUpgrades>, time: Res<Time>) {
-    commands.spawn((
-        block_root(),
-        children![weapons_column(), stats_column(upgrades, time)],
-        DespawnOnExit(Menu::Shop),
-    ));
+    let available = upgrades.stats;
+    let elapsed = time.elapsed_secs();
+    commands.spawn_scene(bsn! {
+        @block_root()
+        ~{DespawnOnExit(Menu::Shop)}
+        Children [
+            @weapons_column()
+            --
+            @stats_column(available, elapsed)
+        ]
+    });
 }
 
-fn block_root() -> impl Bundle {
-    (
-        Name::new("Upgrade Menu"),
+fn block_root() -> impl Scene {
+    bsn! {
+        ~{Name::new("Upgrade Menu")}
         Node {
             position_type: PositionType::Absolute,
             display: Display::Grid,
             width: percent(100),
             height: percent(100),
             grid_template_columns: vec![GridTrack::flex(1.0), GridTrack::flex(1.0)],
-            ..default()
-        },
-        // Don't block picking events for other UI roots.
-        Pickable::IGNORE,
-    )
+        }
+        Pickable::IGNORE
+    }
 }
 
 #[derive(Component, Clone)]
@@ -73,8 +77,8 @@ enum WeaponButtonMarker {
     Front,
 }
 
-pub fn weapons_column() -> impl Bundle {
-    (
+fn weapons_column() -> impl Scene {
+    bsn! {
         Node {
             position_type: PositionType::Relative,
             width: percent(100),
@@ -83,50 +87,42 @@ pub fn weapons_column() -> impl Bundle {
             flex_direction: FlexDirection::Column,
             justify_content: JustifyContent::Center,
             display: Display::Flex,
-            ..Default::default()
-        },
-        Pickable::IGNORE,
-        children![
-            (label("Weapons")),
-            button("Top", weapon_upgrade, WeaponButtonMarker::Front),
-            (
-                Node {
-                    position_type: PositionType::Relative,
-                    width: percent(100),
-                    height: percent(100),
-                    // align_items: AlignItems::Center,
-                    justify_content: JustifyContent::Center,
-                    display: Display::Grid,
-                    grid_template_columns: vec![GridTrack::flex(1.0), GridTrack::flex(1.0)],
-                    ..Default::default()
-                },
-                children![
-                    (
-                        Node {
-                            flex_direction: FlexDirection::Column,
-                            ..Default::default()
-                        },
-                        children![
-                            button("left_top", weapon_upgrade, WeaponButtonMarker::Left(0)),
-                            button("left_middle", weapon_upgrade, WeaponButtonMarker::Left(1)),
-                            button("left_bottom", weapon_upgrade, WeaponButtonMarker::Left(2)),
-                        ]
-                    ),
-                    (
-                        Node {
-                            flex_direction: FlexDirection::Column,
-                            ..Default::default()
-                        },
-                        children![
-                            button("right_top", weapon_upgrade, WeaponButtonMarker::Right(0)),
-                            button("right_middle", weapon_upgrade, WeaponButtonMarker::Right(1)),
-                            button("right_bottom", weapon_upgrade, WeaponButtonMarker::Right(2))
-                        ]
-                    )
+        }
+        Pickable::IGNORE
+        Children [
+            @label("Weapons")
+            --
+            @button("Top", weapon_upgrade, WeaponButtonMarker::Front)
+            --
+            Node {
+                position_type: PositionType::Relative,
+                width: percent(100),
+                height: percent(100),
+                justify_content: JustifyContent::Center,
+                display: Display::Grid,
+                grid_template_columns: vec![GridTrack::flex(1.0), GridTrack::flex(1.0)],
+            }
+            Children [
+                Node { flex_direction: FlexDirection::Column }
+                Children [
+                    @button("left_top", weapon_upgrade, WeaponButtonMarker::Left(0))
+                    --
+                    @button("left_middle", weapon_upgrade, WeaponButtonMarker::Left(1))
+                    --
+                    @button("left_bottom", weapon_upgrade, WeaponButtonMarker::Left(2))
                 ]
-            ),
-        ],
-    )
+                --
+                Node { flex_direction: FlexDirection::Column }
+                Children [
+                    @button("right_top", weapon_upgrade, WeaponButtonMarker::Right(0))
+                    --
+                    @button("right_middle", weapon_upgrade, WeaponButtonMarker::Right(1))
+                    --
+                    @button("right_bottom", weapon_upgrade, WeaponButtonMarker::Right(2))
+                ]
+            ]
+        ]
+    }
 }
 
 fn leave_shop(_: On<PointerClick>, mut next_menu: ResMut<NextState<Menu>>) {
@@ -137,7 +133,7 @@ fn prng(time: f32) -> u8 {
     ((time * 3_136.234_1).sin().fract() * 10.0) as u8
 }
 
-#[derive(Component)]
+#[derive(Component, Clone, Default)]
 struct AvailableTextMarker;
 
 fn rng_to_stat(v: u8) -> StatIncreases {
@@ -150,9 +146,8 @@ fn rng_to_stat(v: u8) -> StatIncreases {
     }
 }
 
-pub fn stats_column(upgrades: Res<AvailableUpgrades>, time: Res<Time>) -> impl Bundle {
-    let available = upgrades.stats;
-    (
+fn stats_column(available: u32, elapsed: f32) -> impl Scene {
+    bsn! {
         Node {
             position_type: PositionType::Relative,
             width: percent(100),
@@ -161,32 +156,21 @@ pub fn stats_column(upgrades: Res<AvailableUpgrades>, time: Res<Time>) -> impl B
             flex_direction: FlexDirection::Column,
             justify_content: JustifyContent::Center,
             display: Display::Flex,
-            ..Default::default()
-        },
-        Pickable::IGNORE,
-        children![
-            (
-                label(format!("Available Stats upgrades: {available}")),
-                AvailableTextMarker
-            ),
-            button(
-                "Stat1",
-                stat_increase,
-                rng_to_stat(prng(time.elapsed_secs()))
-            ),
-            button(
-                "Stat2",
-                stat_increase,
-                rng_to_stat(prng(time.elapsed_secs() + 0.2))
-            ),
-            button(
-                "Stat3",
-                stat_increase,
-                rng_to_stat(prng(time.elapsed_secs() + 0.3))
-            ),
-            button("Next day", leave_shop, NoMarker),
-        ],
-    )
+        }
+        Pickable::IGNORE
+        Children [
+            @label(format!("Available Stats upgrades: {available}"))
+            AvailableTextMarker
+            --
+            @button("Stat1", stat_increase, rng_to_stat(prng(elapsed)))
+            --
+            @button("Stat2", stat_increase, rng_to_stat(prng(elapsed + 0.2)))
+            --
+            @button("Stat3", stat_increase, rng_to_stat(prng(elapsed + 0.3)))
+            --
+            @button("Next day", leave_shop, NoMarker)
+        ]
+    }
 }
 
 fn update_stat_button_text(
@@ -329,4 +313,117 @@ fn stat_increase(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use bevy::{
+        asset::AssetPlugin,
+        camera::NormalizedRenderTarget,
+        picking::{
+            backend::HitData,
+            events::Pointer,
+            pointer::{Location, PointerButton, PointerId},
+        },
+        scene::ScenePlugin,
+        state::app::StatesPlugin,
+        ui_widgets::Button,
+    };
+
+    use super::*;
+
+    fn app_in_shop() -> App {
+        let mut app = App::new();
+        app.add_plugins((
+            MinimalPlugins,
+            StatesPlugin,
+            AssetPlugin::default(),
+            ScenePlugin,
+        ));
+        app.init_state::<Menu>();
+        app.add_plugins(UpgradePlugin);
+        app.world_mut().spawn((
+            PlayerStats::default(),
+            WeaponSlots {
+                left: [None, None, None],
+                right: [None, None, None],
+                front: None,
+            },
+        ));
+        app.insert_state(Menu::Shop);
+        app.update();
+        app
+    }
+
+    fn click(app: &mut App, entity: Entity) {
+        let location = Location {
+            target: NormalizedRenderTarget::None {
+                width: 1,
+                height: 1,
+            },
+            position: Vec2::ZERO,
+        };
+        app.world_mut().trigger(PointerClick {
+            entity,
+            pointer: Pointer::new(PointerId::Mouse, location),
+            button: PointerButton::Primary,
+            hit: HitData::new(entity, 0.0, None, None),
+            duration: Duration::ZERO,
+            count: 1,
+        });
+        app.update();
+    }
+
+    fn button_with<C: Component>(app: &mut App, matches: impl Fn(&C) -> bool) -> Entity {
+        let mut buttons = app
+            .world_mut()
+            .query_filtered::<(Entity, &C), With<Button>>();
+        buttons
+            .iter(app.world())
+            .find(|(_, c)| matches(c))
+            .map(|(e, _)| e)
+            .expect("no such button in the shop")
+    }
+
+    #[test]
+    fn stat_button_spends_a_stat_point() {
+        let mut app = app_in_shop();
+        let stat = button_with::<StatIncreases>(&mut app, |_| true);
+        click(&mut app, stat);
+        assert_eq!(app.world().resource::<AvailableUpgrades>().stats, 2);
+    }
+
+    #[test]
+    fn weapon_slot_button_places_a_weapon_for_two_gold() {
+        let mut app = app_in_shop();
+        app.world_mut().resource_mut::<AvailableUpgrades>().gold = 2;
+        let slot = button_with::<WeaponButtonMarker>(&mut app, |m| {
+            matches!(m, WeaponButtonMarker::Left(1))
+        });
+        click(&mut app, slot);
+        let mut slots = app.world_mut().query::<&WeaponSlots>();
+        assert!(slots.single(app.world()).unwrap().left[1].is_some());
+        assert_eq!(app.world().resource::<AvailableUpgrades>().gold, 0);
+    }
+
+    #[test]
+    fn next_day_button_leaves_the_shop() {
+        let mut app = app_in_shop();
+        let next_day = button_with::<NoMarker>(&mut app, |_| true);
+        click(&mut app, next_day);
+        assert_eq!(*app.world().resource::<State<Menu>>().get(), Menu::None);
+    }
+
+    #[test]
+    fn every_shop_button_shows_its_label() {
+        let mut app = app_in_shop();
+        let mut texts = app
+            .world_mut()
+            .query_filtered::<&Text, Or<(With<WeaponButtonMarker>, With<StatIncreases>)>>();
+        let labels: Vec<String> = texts.iter(app.world()).map(|t| t.0.clone()).collect();
+        assert_eq!(labels.len(), 10);
+        assert!(labels.iter().all(|l| !l.is_empty()));
+    }
 }

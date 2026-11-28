@@ -1,6 +1,6 @@
 //! The credits menu.
 
-use bevy::{ecs::spawn::SpawnIter, input::common_conditions::input_just_pressed, prelude::*};
+use bevy::{input::common_conditions::input_just_pressed, prelude::*};
 
 use crate::{NoMarker, asset_tracking::LoadResource, audio::music, menus::Menu, theme::prelude::*};
 
@@ -16,28 +16,32 @@ pub(super) fn plugin(app: &mut App) {
 }
 
 fn spawn_credits_menu(mut commands: Commands) {
-    commands.spawn((
-        widget::ui_root("Credits Menu"),
-        GlobalZIndex(2),
-        DespawnOnExit(Menu::Credits),
-        children![
-            widget::header("Created by"),
-            created_by(),
-            widget::header("Assets"),
-            assets(),
-            widget::button("Back", go_back_on_click, NoMarker),
-        ],
-    ));
+    commands.spawn_scene(bsn! {
+        @widget::ui_root("Credits Menu")
+        GlobalZIndex(2)
+        ~{DespawnOnExit(Menu::Credits)}
+        Children [
+            @widget::header("Created by")
+            --
+            @created_by()
+            --
+            @widget::header("Assets")
+            --
+            @assets()
+            --
+            @widget::button("Back", go_back_on_click, NoMarker)
+        ]
+    });
 }
 
-fn created_by() -> impl Bundle {
+fn created_by() -> impl Scene {
     grid(vec![
         ["Joe Shmoe", "Implemented alligator wrestling AI"],
         ["Jane Doe", "Made the music for the alien invasion"],
     ])
 }
 
-fn assets() -> impl Bundle {
+fn assets() -> impl Scene {
     grid(vec![
         ["Ducky sprite", "CC0 by Caz Creates Games"],
         ["Button SFX", "CC0 by Jaszunio15"],
@@ -49,32 +53,35 @@ fn assets() -> impl Bundle {
     ])
 }
 
-fn grid(content: Vec<[&'static str; 2]>) -> impl Bundle {
-    (
-        Name::new("Grid"),
+fn grid(content: Vec<[&'static str; 2]>) -> impl Scene {
+    let cells = content
+        .into_iter()
+        .flatten()
+        .enumerate()
+        .map(|(i, text)| grid_cell(text, i.is_multiple_of(2)))
+        .collect::<Vec<_>>();
+    bsn! {
+        #Grid
         Node {
             display: Display::Grid,
             row_gap: px(10),
             column_gap: px(30),
-            grid_template_columns: RepeatedGridTrack::px(2, 400.0),
-            ..default()
-        },
-        Children::spawn(SpawnIter(content.into_iter().flatten().enumerate().map(
-            |(i, text)| {
-                (
-                    widget::label(text),
-                    Node {
-                        justify_self: if i.is_multiple_of(2) {
-                            JustifySelf::End
-                        } else {
-                            JustifySelf::Start
-                        },
-                        ..default()
-                    },
-                )
-            },
-        ))),
-    )
+            grid_template_columns: RepeatedGridTrack::px::<Vec<RepeatedGridTrack>>(2, 400.0),
+        }
+        Children [ {cells} ]
+    }
+}
+
+fn grid_cell(text: &'static str, first_column: bool) -> impl Scene {
+    let justify_self = if first_column {
+        JustifySelf::End
+    } else {
+        JustifySelf::Start
+    };
+    bsn! {
+        @widget::label(text)
+        Node { justify_self: justify_self }
+    }
 }
 
 fn go_back_on_click(_: On<PointerClick>, mut next_menu: ResMut<NextState<Menu>>) {

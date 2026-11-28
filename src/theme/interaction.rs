@@ -1,3 +1,5 @@
+//! Hover and press feedback for buttons: a background colour per state, and a sound on hover and on click.
+
 use bevy::{picking::hover::Hovered, prelude::*, ui::Pressed, ui_widgets::Button};
 
 use crate::{asset_tracking::LoadResource, audio::sound_effect};
@@ -12,7 +14,7 @@ pub(super) fn plugin(app: &mut App) {
 
 /// Palette for widget interactions. Add this to a [`Button`] to change its
 /// [`BackgroundColor`] based on whether it is hovered or pressed.
-#[derive(Component, Debug, Reflect)]
+#[derive(Component, Debug, Clone, Default, Reflect)]
 #[reflect(Component)]
 #[require(Hovered)]
 pub struct InteractionPalette {
